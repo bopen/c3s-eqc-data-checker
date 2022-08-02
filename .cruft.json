@@ -1,0 +1,17 @@
+{
+  "template": "https://github.com/ecmwf-projects/cookiecutter-conda-package",
+  "commit": "8b86e814cf373c48a89c5f5fc3a43d62cd3f9d42",
+  "checkout": null,
+  "context": {
+    "cookiecutter": {
+      "project_name": "c3s-eqc-data-checker",
+      "project_slug": "c3s_eqc_data_checker",
+      "project_short_description": "Data quality checker",
+      "copyright_holder": "European Union",
+      "copyright_year": "2022",
+      "mypy_strict": "True",
+      "_template": "https://github.com/ecmwf-projects/cookiecutter-conda-package"
+    }
+  },
+  "directory": null
+}
