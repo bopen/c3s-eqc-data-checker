@@ -2,6 +2,13 @@
 
 Data quality checker
 
+## Quick Start
+
+```python
+>>> import c3s_eqc_data_checker
+
+```
+
 ## Workflow for developers/contributors
 
 For best experience create a new conda environment (e.g. DEVELOP) with Python 3.10:
