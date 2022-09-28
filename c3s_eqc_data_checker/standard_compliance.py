@@ -1,5 +1,6 @@
 import dataclasses
 import functools
+import tempfile
 
 import cfchecker.cfchecks
 
@@ -21,7 +22,10 @@ class StandardCompliance:
     def check_standard_compliance(self) -> None:
         if self.file_format.is_netcdf:
             checker = cfchecker.cfchecks.CFChecker(
-                silent=True, version=cfchecker.cfchecks.CFVersion()
+                silent=True,
+                version=cfchecker.cfchecks.CFVersion(),
+                cacheDir=tempfile.gettempdir(),
+                cacheTables=True,
             )
             checker.checker(self.filename)
             count = checker.get_total_counts()
