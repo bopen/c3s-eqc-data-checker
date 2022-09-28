@@ -12,6 +12,7 @@ dependencies:
 - sphinx
 - sphinx-autoapi
 # DO NOT EDIT ABOVE THIS LINE, ADD DEPENDENCIES BELOW
+- cfchecker
 - cfgrib
 - netCDF4
 - xarray

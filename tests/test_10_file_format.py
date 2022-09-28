@@ -36,7 +36,7 @@ def ds() -> xr.Dataset:
         ("NETCDF3_CLASSIC", True),
     ],
 )
-def test_netcdf(
+def test_file_format_netcdf(
     tmpdir: pathlib.Path,
     ds: xr.Dataset,
     format: Literal["NETCDF4", "NETCDF4_CLASSIC", "NETCDF3_64BIT", "NETCDF3_CLASSIC"],
@@ -50,9 +50,9 @@ def test_netcdf(
     assert ff.is_netcdf is True
     if error:
         with pytest.raises(file_format.FileFormatError):
-            ff.check_format()
+            ff.check_file_format()
     else:
-        ff.check_format()
+        ff.check_file_format()
 
 
 @pytest.mark.parametrize("edition,error", [(1, True), (2, False)])
@@ -62,23 +62,23 @@ def test_netcdf(
 @pytest.mark.filterwarnings(
     "ignore:distutils Version classes are deprecated. Use packaging.version instead."
 )
-def test_grib(tmpdir: pathlib.Path, ds: xr.Dataset, edition: int, error: bool) -> None:
+def test_file_format_grib(
+    tmpdir: pathlib.Path, ds: xr.Dataset, edition: int, error: bool
+) -> None:
     filename = str(tmpdir / "test.grib")
-    cfgrib.xarray_to_grib.canonical_dataset_to_grib(
-        ds, filename, grib_keys={"edition": edition}
-    )
+    cfgrib.xarray_to_grib.to_grib(ds, filename, grib_keys={"edition": edition})
     ff = file_format.FileFormat(filename)
 
     assert ff.is_grib is True
     assert ff.is_netcdf is False
     if error:
         with pytest.raises(file_format.FileFormatError):
-            ff.check_format()
+            ff.check_file_format()
     else:
-        ff.check_format()
+        ff.check_file_format()
 
 
-def test_error() -> None:
+def test_file_format_error() -> None:
     ff = file_format.FileFormat("foo.txt")
     with pytest.raises(file_format.FileFormatError):
-        ff.check_format()
+        ff.check_file_format()
