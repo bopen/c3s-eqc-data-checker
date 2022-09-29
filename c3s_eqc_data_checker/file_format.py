@@ -15,17 +15,10 @@ import dataclasses
 import functools
 import mimetypes
 
+import eccodes
 import netCDF4
-import xarray as xr
 
 from . import config
-
-try:
-    import dask  # noqa: F401
-
-    HAS_DASK = True
-except ImportError:
-    HAS_DASK = False
 
 # Add netcdf and grib to mimetypes
 for ext in config.NETCDF_EXTENSIONS:
@@ -58,10 +51,10 @@ class FileFormat:
 
     def check_file_format(self) -> None:
         if self.is_grib:
-            with xr.open_dataset(
-                self.filename, engine="cfgrib", chunks="auto" if HAS_DASK else None
-            ) as ds:
-                edition = ds.attrs["GRIB_edition"]
+            with open(self.filename, "rb") as f:
+                msgid = eccodes.codes_any_new_from_file(f)
+                edition = eccodes.codes_get(msgid, "edition")
+                eccodes.codes_release(msgid)
             if edition < config.MIN_GRIB_EDITION:
                 raise FileFormatError(f"{self.filename!r} format is GRIB{edition!r}.")
 
