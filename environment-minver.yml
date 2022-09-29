@@ -9,3 +9,4 @@ dependencies:
 - cfchecker
 - eccodes
 - netCDF4
+- xarray
