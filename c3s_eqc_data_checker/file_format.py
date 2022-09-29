@@ -46,23 +46,28 @@ class FileFormat:
 
     @functools.cached_property
     def is_netcdf(self) -> bool:
-
         return self.type_from_ext == "application/netcdf"
 
     def check_file_format(self) -> None:
         if self.is_grib:
             with open(self.filename, "rb") as f:
                 msgid = eccodes.codes_any_new_from_file(f)
+                identifier = eccodes.codes_get(msgid, "identifier")
                 edition = eccodes.codes_get(msgid, "edition")
                 eccodes.codes_release(msgid)
-            if edition < config.MIN_GRIB_EDITION:
-                raise FileFormatError(f"{self.filename!r} format is GRIB{edition!r}.")
+            if identifier != "GRIB" or edition < config.MIN_GRIB_EDITION:
+                raise FileFormatError(
+                    f"{self.filename!r} format is '{identifier}{edition}'."
+                )
 
         elif self.is_netcdf:
             with netCDF4.Dataset(self.filename, "r") as rootgrp:
                 data_model = rootgrp.data_model
-            edition = int(data_model.split("_")[0].replace("NETCDF", ""))
-            if edition < config.MIN_NETCDF_EDITION:
+            edition = data_model.split("_")[0].replace("NETCDF", "")
+            if (
+                not data_model.startswith("NETCDF")
+                or int(edition) < config.MIN_NETCDF_EDITION
+            ):
                 raise FileFormatError(f"{self.filename!r} format is {data_model!r}.")
 
         else:
