@@ -36,3 +36,5 @@ class StandardCompliance:
                         + checker.all_messages
                     )
                 )
+        elif self.file_format.is_grib:
+            raise NotImplementedError("TODO")
