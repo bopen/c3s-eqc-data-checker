@@ -15,17 +15,10 @@ import dataclasses
 import functools
 import mimetypes
 
+import eccodes
 import netCDF4
-import xarray as xr
 
 from . import config
-
-try:
-    import dask  # noqa: F401
-
-    HAS_DASK = True
-except ImportError:
-    HAS_DASK = False
 
 # Add netcdf and grib to mimetypes
 for ext in config.NETCDF_EXTENSIONS:
@@ -53,27 +46,31 @@ class FileFormat:
 
     @functools.cached_property
     def is_netcdf(self) -> bool:
-
         return self.type_from_ext == "application/netcdf"
 
-    def check_format(self) -> None:
+    def check_file_format(self) -> None:
         if self.is_grib:
-            with xr.open_dataset(
-                self.filename, engine="cfgrib", chunks="auto" if HAS_DASK else None
-            ) as ds:
-                edition = ds.attrs["GRIB_edition"]
-            if edition < config.MIN_GRIB_EDITION:
-                raise FileFormatError(f"GRIB{edition} is not compliant.")
+            with open(self.filename, "rb") as f:
+                msgid = eccodes.codes_any_new_from_file(f)
+                identifier = eccodes.codes_get(msgid, "identifier")
+                edition = eccodes.codes_get(msgid, "edition")
+                eccodes.codes_release(msgid)
+            if identifier != "GRIB" or edition < config.MIN_GRIB_EDITION:
+                raise FileFormatError(
+                    f"{self.filename!r} format is '{identifier}{edition}'."
+                )
 
         elif self.is_netcdf:
             with netCDF4.Dataset(self.filename, "r") as rootgrp:
                 data_model = rootgrp.data_model
-            edition = int(data_model.split("_")[0].replace("NETCDF", ""))
-            if edition < config.MIN_NETCDF_EDITION:
-                raise FileFormatError(f"{data_model} is not compliant.")
+            edition = data_model.split("_")[0].replace("NETCDF", "")
+            if (
+                not data_model.startswith("NETCDF")
+                or int(edition) < config.MIN_NETCDF_EDITION
+            ):
+                raise FileFormatError(f"{self.filename!r} format is {data_model!r}.")
 
         else:
             raise FileFormatError(
-                "MIME type associated with the filename extension"
-                f" is not compliant: {self.type_from_ext}."
+                f"{self.filename!r} MIME type is {self.type_from_ext}."
             )
