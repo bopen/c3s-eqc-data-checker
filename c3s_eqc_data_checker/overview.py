@@ -38,12 +38,11 @@ class Overview:
             case _:
                 raise NotImplementedError(f"{format=}")
 
-        expected_format = f"{format}{version if version else ''}"
+        expected_prefix = f"{format}{version if version else ''}"
         errors = {}
         for path in self.paths:
             full_format = get_full_format(path)
-            actual_format = full_format.split("_", 1)[0]
-            if actual_format != expected_format:
+            if not full_format.startswith(expected_prefix):
                 errors[path] = full_format
 
         return errors
