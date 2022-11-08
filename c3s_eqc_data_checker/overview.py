@@ -30,9 +30,8 @@ class Overview:
     def check_format(
         self, format: Literal["GRIB", "NETCDF"], version: int | None
     ) -> dict[str, str]:
-        prefix = f"{format}{version if version else ''}"
+        expected_format = f"{format}{version if version else ''}"
         errors = {}
-
         for path in self.paths:
             if format == "GRIB":
                 full_format = get_grib_full_format(path)
@@ -41,7 +40,8 @@ class Overview:
             else:
                 NotImplementedError(f"{format=}")
 
-            if not full_format.startswith(prefix):
+            actual_format = full_format.split("_", 1)[0]
+            if actual_format != expected_format:
                 errors[path] = full_format
 
         return errors
