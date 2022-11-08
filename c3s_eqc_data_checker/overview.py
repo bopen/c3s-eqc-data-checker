@@ -30,16 +30,18 @@ class Overview:
     def check_format(
         self, format: Literal["GRIB", "NETCDF"], version: int | None
     ) -> dict[str, str]:
+        match format:
+            case "GRIB":
+                get_full_format = get_grib_full_format
+            case "NETCDF":
+                get_full_format = get_netcdf_full_format
+            case _:
+                raise NotImplementedError(f"{format=}")
+
         expected_format = f"{format}{version if version else ''}"
         errors = {}
         for path in self.paths:
-            if format == "GRIB":
-                full_format = get_grib_full_format(path)
-            elif format == "NETCDF":
-                full_format = get_netcdf_full_format(path)
-            else:
-                NotImplementedError(f"{format=}")
-
+            full_format = get_full_format(path)
             actual_format = full_format.split("_", 1)[0]
             if actual_format != expected_format:
                 errors[path] = full_format
