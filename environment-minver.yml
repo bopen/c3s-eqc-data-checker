@@ -6,8 +6,4 @@ dependencies:
 - pytest
 - pytest-cov
 # DO NOT EDIT ABOVE THIS LINE, ADD DEPENDENCIES BELOW
-- eccodes
-- netCDF4
-- pip
-- pip:
-  - eccodes
+- xarray

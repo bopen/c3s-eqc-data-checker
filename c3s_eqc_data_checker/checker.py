@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import collections
 import dataclasses
 import glob
-from typing import Iterator, Literal
+from typing import Any, Iterator, Literal
 
 
 @dataclasses.dataclass
@@ -40,12 +41,24 @@ class Checker:
     def paths(self) -> Iterator[str]:
         return glob.iglob(self.pattern)
 
-    def check_format(self, version: int | None) -> dict[str, str]:
+    def check_format(self, version: int | None = None) -> dict[str, str]:
         expected_prefix = f"{self.format}{version if version else ''}"
         errors = {}
         for path in self.paths:
             full_format = self.backend(path).full_format
             if not full_format.startswith(expected_prefix):
                 errors[path] = full_format
+        return errors
 
+    def check_global_attributes(
+        self, **expected_attrs: Any
+    ) -> dict[str, dict[str, Any]]:
+        errors: dict[str, dict[str, Any]] = collections.defaultdict(dict)
+        for path in self.paths:
+            actual_attrs = self.backend(path).global_attrs
+            for key, value in expected_attrs.items():
+                if key not in actual_attrs:
+                    errors[path][key] = None
+                elif value is not None and actual_attrs[key] != value:
+                    errors[path][key] = actual_attrs[key]
         return errors
