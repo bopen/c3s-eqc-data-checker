@@ -74,19 +74,28 @@ class Checker:
         )
 
         errors = {}
-        inst = cfchecker.cfchecks.CFChecker(version=version, silent=True)
-        for path in self.paths:
-            if self.format != "NETCDF":
-                with tempfile.NamedTemporaryFile(suffix=".nc") as tmpfile:
-                    tmpfilename = tmpfile.name
-                    ds = self.backend(path).ds
-                    ds = ds.isel(**{dim: [0] for dim, size in ds.sizes.items() if size})
-                    self.backend(path).ds.to_netcdf(tmpfilename)
-                    inst.checker(tmpfilename)
-            else:
-                inst.checker(path)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            inst = cfchecker.cfchecks.CFChecker(
+                cacheTables=True,
+                cacheTime=10 * 24 * 60 * 60,
+                cacheDir=tmpdir,
+                version=version,
+                silent=True,
+            )
+            for path in self.paths:
+                if self.format == "NETCDF":
+                    inst.checker(path)
+                else:
+                    with tempfile.NamedTemporaryFile(suffix=".nc") as tmpfile:
+                        tmpfilename = tmpfile.name
+                        ds = self.backend(path).ds
+                        ds = ds.isel(
+                            **{dim: [0] for dim, size in ds.sizes.items() if size}
+                        )
+                        self.backend(path).ds.to_netcdf(tmpfilename)
+                        inst.checker(tmpfilename)
 
-            counts = inst.get_counts()
-            if counts["ERROR"] or counts["FATAL"]:
-                errors[path] = inst.results
+                counts = inst.get_counts()
+                if counts["ERROR"] or counts["FATAL"]:
+                    errors[path] = inst.results
         return errors
