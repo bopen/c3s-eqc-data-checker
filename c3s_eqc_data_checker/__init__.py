@@ -13,7 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from .overview import Overview
+from .checker import Checker
 
 try:
     # NOTE: the `version.py` file must not be present in the git repository
@@ -23,4 +23,4 @@ except ImportError:  # pragma: no cover
     # Local copy or not installed with setuptools
     __version__ = "999"
 
-__all__ = ["__version__", "Overview"]
+__all__ = ["__version__", "Checker"]
