@@ -15,6 +15,7 @@
 import collections
 import dataclasses
 import glob
+import tempfile
 from typing import Any, Iterator, Literal
 
 
@@ -41,7 +42,7 @@ class Checker:
     def paths(self) -> Iterator[str]:
         return glob.iglob(self.pattern)
 
-    def check_format(self, version: int | None = None) -> dict[str, str]:
+    def check_format(self, version: float | int | None = None) -> dict[str, str]:
         expected_prefix = f"{self.format}{version if version else ''}"
         errors = {}
         for path in self.paths:
@@ -61,4 +62,31 @@ class Checker:
                     errors[path][key] = None
                 elif value is not None and actual_attrs[key] != value:
                     errors[path][key] = actual_attrs[key]
+        return errors
+
+    def check_cf_compliance(self, version: float | str | None = None) -> dict[str, Any]:
+        import cfchecker.cfchecks
+
+        version = (
+            cfchecker.cfchecks.CFVersion()
+            if version is None
+            else cfchecker.cfchecks.CFVersion(str(version))
+        )
+
+        errors = {}
+        inst = cfchecker.cfchecks.CFChecker(version=version, silent=True)
+        for path in self.paths:
+            if self.format != "NETCDF":
+                with tempfile.NamedTemporaryFile(suffix=".nc") as tmpfile:
+                    tmpfilename = tmpfile.name
+                    ds = self.backend(path).ds
+                    ds = ds.isel(**{dim: [0] for dim, size in ds.sizes.items() if size})
+                    self.backend(path).ds.to_netcdf(tmpfilename)
+                    inst.checker(tmpfilename)
+            else:
+                inst.checker(path)
+
+            counts = inst.get_counts()
+            if counts["ERROR"] or counts["FATAL"]:
+                errors[path] = inst.results
         return errors
