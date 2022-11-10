@@ -86,14 +86,14 @@ class Checker:
                 if self.format == "NETCDF":
                     inst.checker(path)
                 else:
+                    # Save a small sample as netcdf
                     with tempfile.NamedTemporaryFile(suffix=".nc") as tmpfile:
-                        tmpfilename = tmpfile.name
                         ds = self.backend(path).ds
                         ds = ds.isel(
                             **{dim: [0] for dim, size in ds.sizes.items() if size}
                         )
-                        self.backend(path).ds.to_netcdf(tmpfilename)
-                        inst.checker(tmpfilename)
+                        self.backend(path).ds.to_netcdf(tmpfile.name)
+                        inst.checker(tmpfile.name)
 
                 counts = inst.get_counts()
                 if counts["ERROR"] or counts["FATAL"]:

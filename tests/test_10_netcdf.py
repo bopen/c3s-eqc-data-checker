@@ -27,3 +27,14 @@ def test_global_attrs(tmp_path: pathlib.Path) -> None:
     actual = checker.check_global_attributes(a=None, b="b", c="wrong", d="d")
     expected = {str(tmp_path / "test.nc"): {"c": "c", "d": None}}
     assert actual == expected
+
+
+def test_cf_compliance(tmp_path: pathlib.Path) -> None:
+    ds = xr.Dataset({"foo": ("dim_0", [None], {"standard_name": "air_temperature"})})
+    ds.to_netcdf(tmp_path / "compliant.nc")
+    ds["foo"].attrs["standard_name"] = "unknown"
+    ds.to_netcdf(tmp_path / "non-compliant.nc")
+
+    checker = Checker(str(tmp_path / "*compliant.nc"), format="NETCDF")
+    actual = checker.check_cf_compliance()
+    assert set(actual) == {str(tmp_path / "non-compliant.nc")}

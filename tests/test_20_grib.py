@@ -29,3 +29,14 @@ def test_global_attrs(grib_path: pathlib.Path) -> None:
         str(grib_path / "GRIB2.tmpl"): {"foo": None},
     }
     assert expected == actual
+
+
+def test_cf_compliance(tmp_path: pathlib.Path, grib_path: pathlib.Path) -> None:
+    (tmp_path / "compliant.grib").symlink_to(grib_path / "GRIB2.tmpl")
+    (tmp_path / "non-compliant.grib").symlink_to(
+        grib_path / "reduced_ll_sfc_grib2.tmpl"
+    )
+
+    checker = Checker(str(tmp_path / "*compliant.grib"), format="GRIB")
+    actual = checker.check_cf_compliance()
+    assert set(actual) == {str(tmp_path / "non-compliant.grib")}
