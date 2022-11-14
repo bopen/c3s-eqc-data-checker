@@ -16,5 +16,9 @@ class NetCDF(baseformat.BaseFormat):
             return str(rootgrp.data_model)
 
     @property
+    def variable_attrs(self) -> dict[str, dict[str, Any]]:
+        return {str(var): da.attrs for var, da in self.ds.variables.items()}
+
+    @property
     def global_attrs(self) -> dict[str, Any]:
         return self.ds.attrs

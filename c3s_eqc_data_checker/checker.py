@@ -51,17 +51,27 @@ class Checker:
                 errors[path] = full_format
         return errors
 
-    def check_global_attributes(
-        self, **expected_attrs: Any
-    ) -> dict[str, dict[str, Any]]:
-        errors: dict[str, dict[str, Any]] = collections.defaultdict(dict)
+    def check_variable_attributes(
+        self, **expected_attrs: dict[str, Any]
+    ) -> dict[str, dict[str, dict[str, Any]]]:
+        errors: dict[str, dict[str, dict[str, Any]]] = collections.defaultdict(dict)
         for path in self.paths:
-            actual_attrs = self.backend(path).global_attrs
-            for key, value in expected_attrs.items():
-                if key not in actual_attrs:
-                    errors[path][key] = None
-                elif value is not None and actual_attrs[key] != value:
-                    errors[path][key] = actual_attrs[key]
+            actual_attrs = self.backend(path).variable_attrs
+            for var, expected_var_attrs in expected_attrs.items():
+                error = check_attributes(expected_var_attrs, actual_attrs.get(var, {}))
+                if error:
+                    errors[path][var] = error
+        return errors
+
+    def check_global_attributes(
+        self, **expected_global_attrs: Any
+    ) -> dict[str, dict[str, Any]]:
+        errors = {}
+        for path in self.paths:
+            actual_global_attrs = self.backend(path).global_attrs
+            error = check_attributes(expected_global_attrs, actual_global_attrs)
+            if error:
+                errors[path] = error
         return errors
 
     def check_cf_compliance(self, version: float | str | None = None) -> dict[str, Any]:
@@ -99,3 +109,15 @@ class Checker:
                 if counts["ERROR"] or counts["FATAL"]:
                     errors[path] = inst.results
         return errors
+
+
+def check_attributes(
+    expected: dict[str, Any], actual: dict[str, Any]
+) -> dict[str, Any]:
+    errors: dict[str, Any] = {}
+    for key, value in expected.items():
+        if key not in actual:
+            errors[key] = None
+        elif value is not None and actual[key] != value:
+            errors[key] = actual[key]
+    return errors

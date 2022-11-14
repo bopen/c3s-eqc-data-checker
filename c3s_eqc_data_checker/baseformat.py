@@ -31,5 +31,10 @@ class BaseFormat:
 
     @property
     @abc.abstractmethod
+    def variable_attrs(self) -> dict[str, dict[str, Any]]:
+        pass
+
+    @property
+    @abc.abstractmethod
     def global_attrs(self) -> dict[str, Any]:
         pass
