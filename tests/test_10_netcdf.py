@@ -1,5 +1,6 @@
 import pathlib
 
+import pandas as pd
 import pytest
 import xarray as xr
 
@@ -51,3 +52,23 @@ def test_cf_compliance(tmp_path: pathlib.Path) -> None:
     checker = Checker(str(tmp_path / "*compliant.nc"), format="NETCDF")
     actual = checker.check_cf_compliance()
     assert set(actual) == {str(tmp_path / "non-compliant.nc")}
+
+
+def test_temporal_resolution(tmp_path: pathlib.Path) -> None:
+    for i, date in enumerate(pd.date_range("1900-01-01", "1900-01-03", freq="1D")):
+        da = xr.DataArray(date, name="time")
+        da.to_netcdf(tmp_path / f"test{i}.nc")
+
+    checker = Checker(str(tmp_path / "*.nc"), format="NETCDF")
+    actual = checker.check_temporal_resolution("time", "1900-01-01", "1900-01-03", "1d")
+    expected: dict[str, str | set[str]] = {}
+    assert actual == expected
+
+    (tmp_path / "test1.nc").unlink()
+    actual = checker.check_temporal_resolution("time", "2000-01-01", "2000-01-03", "1d")
+    expected = {
+        "min": "1900-01-01T00:00:00.000000000",
+        "max": "1900-01-03T00:00:00.000000000",
+        "resolution": {"172800000000000 nanos"},
+    }
+    assert actual == expected

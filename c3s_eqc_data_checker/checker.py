@@ -18,6 +18,9 @@ import glob
 import tempfile
 from typing import Any, Iterator, Literal
 
+import pandas as pd
+import xarray as xr
+
 
 @dataclasses.dataclass
 class Checker:
@@ -113,6 +116,31 @@ class Checker:
                 counts = inst.get_counts()
                 if counts["ERROR"] or counts["FATAL"]:
                     errors[path] = inst.results
+        return errors
+
+    def check_temporal_resolution(
+        self, name: str, min: str, max: str, resolution: str
+    ) -> dict[str, str | set[str]]:
+        min = pd.to_datetime(min)
+        max = pd.to_datetime(max)
+        resolution = pd.to_timedelta(resolution)
+
+        times = []
+        for path in self.paths:
+            times.append(self.backend(path).ds[name])
+        time = xr.concat(times, name)
+        time = time.sortby(time)
+
+        errors: dict[str, str | set[str]] = {}
+        if (actual_min := time.min()) != min:
+            errors["min"] = str(actual_min.values)
+
+        if (actual_max := time.max()) != max:
+            errors["max"] = str(actual_max.values)
+
+        if ((actual_res := time.diff(name)) != resolution).any():
+            errors["resolution"] = set(actual_res.astype(str).values)
+
         return errors
 
 
