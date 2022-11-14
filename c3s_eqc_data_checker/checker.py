@@ -138,8 +138,10 @@ class Checker:
         if (actual_max := time.max()) != max:
             errors["max"] = str(actual_max.values)
 
-        if ((actual_res := time.diff(name)) != resolution).any():
-            errors["resolution"] = set(actual_res.astype(str).values)
+        if time.size <= 1 and resolution != pd.to_timedelta(0):
+            errors["resolution"] = "0"
+        elif ((actual_res := time.diff(name)) != resolution).any():
+            errors["resolution"] = {str(value) for value in actual_res.values}
 
         return errors
 
