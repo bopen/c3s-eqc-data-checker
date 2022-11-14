@@ -18,7 +18,7 @@ class Grib(baseformat.BaseFormat):
     @property
     def variable_attrs(self) -> dict[str, dict[str, Any]]:
         return {
-            str(name): original_grib_attributes(var)
+            str(name): {**self.global_attrs, **original_grib_attributes(var)}
             for name, var in self.ds.variables.items()
         }
 

@@ -53,14 +53,19 @@ class Checker:
 
     def check_variable_attributes(
         self, **expected_attrs: dict[str, Any]
-    ) -> dict[str, dict[str, dict[str, Any]]]:
-        errors: dict[str, dict[str, dict[str, Any]]] = collections.defaultdict(dict)
+    ) -> dict[str, dict[str, None | dict[str, Any]]]:
+        errors: dict[str, dict[str, None | dict[str, Any]]] = collections.defaultdict(
+            dict
+        )
         for path in self.paths:
             actual_attrs = self.backend(path).variable_attrs
             for var, expected_var_attrs in expected_attrs.items():
-                error = check_attributes(expected_var_attrs, actual_attrs.get(var, {}))
-                if error:
-                    errors[path][var] = error
+                if var not in actual_attrs:
+                    errors[path][var] = None
+                else:
+                    error = check_attributes(expected_var_attrs, actual_attrs[var])
+                    if error:
+                        errors[path][var] = error
         return errors
 
     def check_global_attributes(

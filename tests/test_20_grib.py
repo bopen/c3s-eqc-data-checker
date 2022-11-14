@@ -22,14 +22,13 @@ def test_format(grib_path: pathlib.Path) -> None:
 def test_variable_attrs(grib_path: pathlib.Path) -> None:
     checker = Checker(str(grib_path / "GRIB*.tmpl"), format="GRIB")
     actual = checker.check_variable_attributes(
-        t=dict(cfName=None, cfVarName="t", units="wrong", foo="foo")
+        t=dict(edition=2, cfName=None, cfVarName="t", units="wrong", foo="foo")
     )
     expected = {
-        str(grib_path / "GRIB1.tmpl"): {
-            "t": {"cfName": None, "cfVarName": None, "units": None, "foo": None}
-        },
+        str(grib_path / "GRIB1.tmpl"): {"t": None},
         str(grib_path / "GRIB2.tmpl"): {"t": {"units": "K", "foo": None}},
     }
+
     assert expected == actual
 
 
