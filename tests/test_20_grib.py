@@ -70,11 +70,25 @@ def test_temporal_resolution(grib_path: pathlib.Path) -> None:
     assert actual == expected
 
 
-def test_horizontal_grid(grib_path: pathlib.Path) -> None:
+def test_horizontal_resolution(grib_path: pathlib.Path) -> None:
     checker = Checker(str(grib_path / "GRIB2.tmpl"), format="GRIB")
-    actual = checker.check_horizontal_grid(gridtype="lonlat", xinc="2", yinc="-2")
+    actual = checker.check_horizontal_resolution(gridtype="lonlat", xinc="2", yinc="-2")
     assert actual == {}
 
-    actual = checker.check_horizontal_grid(xinc="2", yinc="wrong", foo="foo")
+    actual = checker.check_horizontal_resolution(xinc="2", yinc="wrong", foo="foo")
     expected = {str(grib_path / "GRIB2.tmpl"): {"yinc": "-2", "foo": None}}
+    assert actual == expected
+
+
+def test_vertical_resolution(grib_path: pathlib.Path) -> None:
+    checker = Checker(str(grib_path / "GRIB2.tmpl"), format="GRIB")
+    actual = checker.check_vertical_resolution(
+        zaxistype="surface", size="1", levels="0"
+    )
+    assert actual == {}
+
+    actual = checker.check_vertical_resolution(
+        zaxistype="surface", size="wrong", foo="foo"
+    )
+    expected = {str(grib_path / "GRIB2.tmpl"): {"size": "1", "foo": None}}
     assert actual == expected

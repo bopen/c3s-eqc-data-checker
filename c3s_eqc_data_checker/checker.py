@@ -158,16 +158,26 @@ class Checker:
                         errors[path].add(var)
         return errors
 
-    def check_horizontal_grid(
-        self, **expected_griddes: str
+    def check_spatial_resolution(
+        self, destype: str, expected_attrs: dict[str, str]
     ) -> dict[str, dict[str, str | None]]:
         errors = {}
         for path in self.paths:
-            actual_griddes = get_griddes(path)
-            error = check_attributes(expected_griddes, actual_griddes)
+            actual_attrs = cdo_des_to_dict(path, destype)
+            error = check_attributes(expected_attrs, actual_attrs)
             if error:
                 errors[path] = error
         return errors
+
+    def check_horizontal_resolution(
+        self, **expected_griddes: str
+    ) -> dict[str, dict[str, str | None]]:
+        return self.check_spatial_resolution("griddes", expected_griddes)
+
+    def check_vertical_resolution(
+        self, **expected_griddes: str
+    ) -> dict[str, dict[str, str | None]]:
+        return self.check_spatial_resolution("zaxisdes", expected_griddes)
 
 
 def check_attributes(
@@ -183,11 +193,11 @@ def check_attributes(
     return errors
 
 
-def get_griddes(path: str) -> dict[str, str]:
+def cdo_des_to_dict(path: str, destype: str) -> dict[str, str]:
     griddes_dict = {}
-    for string in cdo.Cdo().griddes(input=path):
+    for string in getattr(cdo.Cdo(), destype)(input=path):
         if "=" in string:
-            string = string.replace("'", "").replace('"', "").replace(" ", "")
+            string = string.replace("'", "").replace('"', "")
             key, value = string.split("=")
-            griddes_dict[key] = value
+            griddes_dict[key.strip()] = value.strip()
     return griddes_dict
