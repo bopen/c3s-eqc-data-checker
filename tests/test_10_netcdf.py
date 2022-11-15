@@ -86,21 +86,3 @@ def test_masked_variables(tmp_path: pathlib.Path) -> None:
     actual = checker.check_masked_variables(str(tmp_path / "mask.nc"), "mask")
     expected = {str(tmp_path / "test.nc"): {"wrong0", "wrong1", "wrong2"}}
     assert actual == expected
-
-
-def test_horizontal_resolution(tmp_path: pathlib.Path) -> None:
-    xr.Dataset({"lon": xr.DataArray([0, 1]), "lat": xr.DataArray([0, 1])}).to_netcdf(
-        tmp_path / "test.nc"
-    )
-
-    checker = Checker(str(tmp_path / "test.nc"), format="NETCDF")
-    actual = checker.check_horizontal_resolution(
-        gridtype="generic", gridsize="2", xsize="2"
-    )
-    assert actual == {}
-
-    actual = checker.check_horizontal_resolution(
-        gridtype="generic", gridsize="wrong", foo="foo"
-    )
-    expected = {str(tmp_path / "test.nc"): {"gridsize": "2", "foo": None}}
-    assert actual == expected
