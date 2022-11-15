@@ -57,8 +57,7 @@ def test_temporal_resolution(grib_path: pathlib.Path) -> None:
     actual = checker.check_temporal_resolution(
         "time", "2007-03-23T12", "2007-03-23T12", "0"
     )
-    expected: dict[str, str | set[str]] = {}
-    assert actual == expected
+    assert actual == {}
 
     actual = checker.check_temporal_resolution(
         "time", "1907-03-23T12", "1907-03-23T12", "1D"

@@ -57,8 +57,7 @@ def test_temporal_resolution(tmp_path: pathlib.Path) -> None:
 
     checker = Checker(str(tmp_path / "*.nc"), format="NETCDF")
     actual = checker.check_temporal_resolution("time", "1900-01-01", "1900-01-02", "1D")
-    expected: dict[str, str | set[str]] = {}
-    assert actual == expected
+    assert actual == {}
 
     actual = checker.check_temporal_resolution("time", "2000-01-01", "2000-01-02", "2D")
     expected = {
@@ -75,15 +74,31 @@ def test_masked_variables(tmp_path: pathlib.Path) -> None:
     # Write dataset
     xr.Dataset(
         {
-            "ok0": xr.DataArray([None, 1], name="foo"),
-            "ok1": xr.DataArray([None, None], dims=("bar",), name="foo"),
-            "wrong0": xr.DataArray([1, None], name="foo"),
-            "wrong1": xr.DataArray([None, None], name="foo"),
-            "wrong2": xr.DataArray([1, 1], name="foo"),
+            "ok0": xr.DataArray([None, 1]),
+            "ok1": xr.DataArray([None, None], dims=("bar",)),
+            "wrong0": xr.DataArray([1, None]),
+            "wrong1": xr.DataArray([None, None]),
+            "wrong2": xr.DataArray([1, 1]),
         }
     ).to_netcdf(tmp_path / "test.nc")
 
     checker = Checker(str(tmp_path / "test.nc"), format="NETCDF")
     actual = checker.check_masked_variables(str(tmp_path / "mask.nc"), "mask")
     expected = {str(tmp_path / "test.nc"): {"wrong0", "wrong1", "wrong2"}}
+    assert actual == expected
+
+
+def test_horizontal_grid(tmp_path: pathlib.Path) -> None:
+    xr.Dataset({"lon": xr.DataArray([0, 1]), "lat": xr.DataArray([0, 1])}).to_netcdf(
+        tmp_path / "test.nc"
+    )
+
+    checker = Checker(str(tmp_path / "test.nc"), format="NETCDF")
+    actual = checker.check_horizontal_grid(gridtype="generic", gridsize="2", xsize="2")
+    assert actual == {}
+
+    actual = checker.check_horizontal_grid(
+        gridtype="generic", gridsize="wrong", foo="foo"
+    )
+    expected = {str(tmp_path / "test.nc"): {"gridsize": "2", "foo": None}}
     assert actual == expected
