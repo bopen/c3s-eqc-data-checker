@@ -145,6 +145,18 @@ class Checker:
 
         return errors
 
+    def check_masked_variables(
+        self, mask_file: str, mask_variable: str
+    ) -> dict[str, set[str]]:
+        mask = self.backend(mask_file).ds[mask_variable]
+        errors: dict[str, set[str]] = collections.defaultdict(set)
+        for path in self.paths:
+            for var, da in self.backend(path).ds.data_vars.items():
+                if set(mask.dims) <= set(da.dims):
+                    if not xr.where(mask, da.notnull(), da.isnull()).all():  # type: ignore[no-untyped-call]
+                        errors[path].add(var)
+        return errors
+
 
 def check_attributes(
     expected: dict[str, Any], actual: dict[str, Any]

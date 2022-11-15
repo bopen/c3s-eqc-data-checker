@@ -71,3 +71,23 @@ def test_temporal_resolution(tmp_path: pathlib.Path) -> None:
         "resolution": {"86400000000000 nanoseconds"},
     }
     assert actual == expected
+
+
+def test_masked_variables(tmp_path: pathlib.Path) -> None:
+    # Write mask
+    xr.DataArray([0, 1], name="mask").to_netcdf(tmp_path / "mask.nc")
+    # Write dataset
+    xr.Dataset(
+        {
+            "ok0": xr.DataArray([None, 1], name="foo"),
+            "ok1": xr.DataArray([None, None], dims=("bar",), name="foo"),
+            "wrong0": xr.DataArray([1, None], name="foo"),
+            "wrong1": xr.DataArray([None, None], name="foo"),
+            "wrong2": xr.DataArray([1, 1], name="foo"),
+        }
+    ).to_netcdf(tmp_path / "test.nc")
+
+    checker = Checker(str(tmp_path / "test.nc"), format="NETCDF")
+    actual = checker.check_masked_variables(str(tmp_path / "mask.nc"), "mask")
+    expected = {str(tmp_path / "test.nc"): {"wrong0", "wrong1", "wrong2"}}
+    assert actual == expected
