@@ -15,7 +15,6 @@ dependencies:
 - cfchecker
 - cfgrib
 - netCDF4
+- python-eccodes
+- python-cdo
 - xarray
-- pip
-- pip:
-  - eccodes

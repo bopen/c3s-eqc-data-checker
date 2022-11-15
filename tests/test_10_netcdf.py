@@ -1,12 +1,9 @@
 import pathlib
 
 import pandas as pd
-import pytest
 import xarray as xr
 
 from c3s_eqc_data_checker import Checker
-
-pytest.importorskip("netCDF4")
 
 
 def test_format(tmp_path: pathlib.Path) -> None:
@@ -43,7 +40,6 @@ def test_global_attrs(tmp_path: pathlib.Path) -> None:
 
 
 def test_cf_compliance(tmp_path: pathlib.Path) -> None:
-    pytest.importorskip("cfchecker")
     ds = xr.Dataset({"foo": ("dim_0", [None], {"standard_name": "air_temperature"})})
     ds.to_netcdf(tmp_path / "compliant.nc")
     ds["foo"].attrs["standard_name"] = "unknown"

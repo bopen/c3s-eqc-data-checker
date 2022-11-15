@@ -6,4 +6,9 @@ dependencies:
 - pytest
 - pytest-cov
 # DO NOT EDIT ABOVE THIS LINE, ADD DEPENDENCIES BELOW
+- cfchecker
+- cfgrib
+- netCDF4
+- python-eccodes
+- python-cdo
 - xarray

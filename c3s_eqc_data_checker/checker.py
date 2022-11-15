@@ -18,6 +18,8 @@ import glob
 import tempfile
 from typing import Any, Iterator, Literal
 
+import cdo
+import cfchecker.cfchecks
 import pandas as pd
 import xarray as xr
 
@@ -83,7 +85,6 @@ class Checker:
         return errors
 
     def check_cf_compliance(self, version: float | str | None = None) -> dict[str, Any]:
-        import cfchecker.cfchecks
 
         version = (
             cfchecker.cfchecks.CFVersion()
@@ -157,6 +158,17 @@ class Checker:
                         errors[path].add(var)
         return errors
 
+    def check_horizontal_grid(
+        self, **expected_griddes: str
+    ) -> dict[str, dict[str, str | None]]:
+        errors = {}
+        for path in self.paths:
+            actual_griddes = get_griddes(path)
+            error = check_attributes(expected_griddes, actual_griddes)
+            if error:
+                errors[path] = error
+        return errors
+
 
 def check_attributes(
     expected: dict[str, Any], actual: dict[str, Any]
@@ -167,4 +179,15 @@ def check_attributes(
             errors[key] = None
         elif value is not None and actual[key] != value:
             errors[key] = actual[key]
+
     return errors
+
+
+def get_griddes(path: str) -> dict[str, str]:
+    griddes_dict = {}
+    for string in cdo.Cdo().griddes(input=path):
+        if "=" in string:
+            string = string.replace("'", "").replace('"', "").replace(" ", "")
+            key, value = string.split("=")
+            griddes_dict[key] = value
+    return griddes_dict

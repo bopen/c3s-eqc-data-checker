@@ -1,16 +1,13 @@
 import pathlib
 
+import eccodes
 import pytest
 
 from c3s_eqc_data_checker import Checker
 
-pytest.importorskip("cfgrib")
-
 
 @pytest.fixture
 def grib_path() -> pathlib.Path:
-    import eccodes
-
     return pathlib.Path(eccodes.codes_samples_path())
 
 
@@ -71,4 +68,14 @@ def test_temporal_resolution(grib_path: pathlib.Path) -> None:
         "min": "2007-03-23T12:00:00.000000000",
         "resolution": "0",
     }
+    assert actual == expected
+
+
+def test_horizontal_grid(grib_path: pathlib.Path) -> None:
+    checker = Checker(str(grib_path / "GRIB2.tmpl"), format="GRIB")
+    actual = checker.check_horizontal_grid(gridtype="lonlat", xinc="2", yinc="-2")
+    assert actual == {}
+
+    actual = checker.check_horizontal_grid(xinc="2", yinc="wrong", foo="foo")
+    expected = {str(grib_path / "GRIB2.tmpl"): {"yinc": "-2", "foo": None}}
     assert actual == expected
