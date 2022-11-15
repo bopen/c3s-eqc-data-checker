@@ -47,7 +47,7 @@ class Checker:
     def paths(self) -> Iterator[str]:
         return glob.iglob(self.pattern)
 
-    def check_format(self, version: float | int | None = None) -> dict[str, str]:
+    def check_format(self, version: float | int | None) -> dict[str, str]:
         expected_prefix = f"{self.format}{version if version else ''}"
         errors = {}
         for path in self.paths:
@@ -84,7 +84,7 @@ class Checker:
                 errors[path] = error
         return errors
 
-    def check_cf_compliance(self, version: float | str | None = None) -> dict[str, Any]:
+    def check_cf_compliance(self, version: float | str | None) -> dict[str, Any]:
 
         version = (
             cfchecker.cfchecks.CFVersion()
@@ -146,16 +146,44 @@ class Checker:
 
         return errors
 
-    def check_masked_variables(
-        self, mask_file: str, mask_variable: str
+    def check_completeness(
+        self,
+        mask_variable: str | None,
+        mask_file: str | None,
+        variables: list[str] | set[str] | tuple[str] | None,
+        ensure_null: bool,
     ) -> dict[str, set[str]]:
-        mask = self.backend(mask_file).ds[mask_variable]
+
+        mask = None
+        if mask_file:
+            if mask_variable is None:
+                raise ValueError(
+                    "please provide `mask_variable` along with `mask_file`"
+                )
+            mask = self.backend(mask_file).ds[mask_variable].fillna(0)
+
         errors: dict[str, set[str]] = collections.defaultdict(set)
         for path in self.paths:
-            for var, da in self.backend(path).ds.data_vars.items():
-                if set(mask.dims) <= set(da.dims):
-                    if not xr.where(mask, da.notnull(), da.isnull()).all():  # type: ignore[no-untyped-call]
-                        errors[path].add(var)
+            ds = self.backend(path).ds
+            if mask is None and mask_variable:
+                mask = ds[mask_variable].fillna(0)
+
+            for var in variables if variables is not None else ds.data_vars:
+                da = ds[var]
+                if variables is not None:
+                    if var not in variables:
+                        continue
+                else:
+                    if mask is not None and not set(mask.dims) <= set(da.dims):
+                        continue
+
+                if mask is None and da.isnull().any():
+                    errors[path].add(var)
+                elif not xr.where(
+                    mask, da.notnull(), da.isnull() if ensure_null else 1
+                ).all():  # type: ignore[no-untyped-call]
+                    errors[path].add(var)
+
         return errors
 
     def check_spatial_resolution(

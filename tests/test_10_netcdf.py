@@ -1,6 +1,7 @@
 import pathlib
 
 import pandas as pd
+import pytest
 import xarray as xr
 
 from c3s_eqc_data_checker import Checker
@@ -46,7 +47,7 @@ def test_cf_compliance(tmp_path: pathlib.Path) -> None:
     ds.to_netcdf(tmp_path / "non-compliant.nc")
 
     checker = Checker(str(tmp_path / "*compliant.nc"), format="NETCDF")
-    actual = checker.check_cf_compliance()
+    actual = checker.check_cf_compliance(None)
     assert set(actual) == {str(tmp_path / "non-compliant.nc")}
 
 
@@ -68,11 +69,33 @@ def test_temporal_resolution(tmp_path: pathlib.Path) -> None:
     assert actual == expected
 
 
-def test_masked_variables(tmp_path: pathlib.Path) -> None:
-    # Write mask
-    xr.DataArray([0, 1], name="mask").to_netcdf(tmp_path / "mask.nc")
-    # Write dataset
+def test_completeness_without_mask(tmp_path: pathlib.Path) -> None:
     xr.Dataset(
+        {
+            "ok": xr.DataArray([0, 1]),
+            "wrong0": xr.DataArray([None, 1]),
+            "wrong1": xr.DataArray([1, None]),
+        }
+    ).to_netcdf(tmp_path / "test.nc")
+
+    checker = Checker(str(tmp_path / "test.nc"), format="NETCDF")
+    actual = checker.check_completeness(None, None, None, False)
+    expected = {str(tmp_path / "test.nc"): {"wrong0", "wrong1"}}
+
+    actual = checker.check_completeness(None, None, {"ok", "wrong0"}, False)
+    expected = {str(tmp_path / "test.nc"): {"wrong0"}}
+    assert actual == expected
+
+
+@pytest.mark.parametrize("create_mask_file", [True, False])
+@pytest.mark.parametrize("ensure_null", [True, False])
+def test_completeness_with_mask(
+    tmp_path: pathlib.Path, create_mask_file: bool, ensure_null: bool
+) -> None:
+    # Write mask
+    mask = xr.DataArray([None, 1], name="mask")
+    # Write dataset
+    ds = xr.Dataset(
         {
             "ok0": xr.DataArray([None, 1]),
             "ok1": xr.DataArray([None, None], dims=("bar",)),
@@ -80,9 +103,25 @@ def test_masked_variables(tmp_path: pathlib.Path) -> None:
             "wrong1": xr.DataArray([None, None]),
             "wrong2": xr.DataArray([1, 1]),
         }
-    ).to_netcdf(tmp_path / "test.nc")
+    )
+    if create_mask_file:
+        mask_file = str(tmp_path / "mask.nc")
+        mask.to_netcdf(mask_file)
+    else:
+        mask_file = None
+        ds["mask"] = mask
+    ds.to_netcdf(tmp_path / "test.nc")
 
     checker = Checker(str(tmp_path / "test.nc"), format="NETCDF")
-    actual = checker.check_masked_variables(str(tmp_path / "mask.nc"), "mask")
-    expected = {str(tmp_path / "test.nc"): {"wrong0", "wrong1", "wrong2"}}
+    actual = checker.check_completeness("mask", mask_file, None, ensure_null)
+    if ensure_null:
+        expected = {str(tmp_path / "test.nc"): {"wrong0", "wrong1", "wrong2"}}
+    else:
+        expected = {str(tmp_path / "test.nc"): {"wrong0", "wrong1"}}
+    assert actual == expected
+
+    actual = checker.check_completeness(
+        "mask", mask_file, {"ok0", "wrong0"}, ensure_null
+    )
+    expected = {str(tmp_path / "test.nc"): {"wrong0"}}
     assert actual == expected

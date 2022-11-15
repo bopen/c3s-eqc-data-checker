@@ -48,7 +48,7 @@ def test_cf_compliance(tmp_path: pathlib.Path, grib_path: pathlib.Path) -> None:
     )
 
     checker = Checker(str(tmp_path / "*compliant.grib"), format="GRIB")
-    actual = checker.check_cf_compliance()
+    actual = checker.check_cf_compliance(None)
     assert set(actual) == {str(tmp_path / "non-compliant.grib")}
 
 
