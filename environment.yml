@@ -15,6 +15,10 @@ dependencies:
 - cfchecker
 - cfgrib
 - netCDF4
+- pandas-stubs
 - python-eccodes
 - python-cdo
+- toml
+- typer
+- types-toml
 - xarray

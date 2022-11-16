@@ -12,8 +12,8 @@ def test_format(tmp_path: pathlib.Path) -> None:
     ds.to_netcdf(path=tmp_path / "test.nc4", format="NETCDF4_CLASSIC")
     ds.to_netcdf(path=tmp_path / "test.nc3", format="NETCDF3_CLASSIC")
 
-    checker = Checker(str(tmp_path / "test.nc*"), format="NETCDF")
-    actual = checker.check_format(4)
+    checker = Checker(str(tmp_path / "test.nc*"), files_format="NETCDF")
+    actual = checker.check_format("4")
     expected = {str(tmp_path / "test.nc3"): "NETCDF3_CLASSIC"}
     assert actual == expected
 
@@ -22,10 +22,8 @@ def test_variables_attrs(tmp_path: pathlib.Path) -> None:
     da = xr.DataArray(name="foo", attrs={"a": "a", "b": "b", "c": "c"})
     da.to_netcdf(tmp_path / "test.nc")
 
-    checker = Checker(str(tmp_path / "test.nc"), format="NETCDF")
-    actual = checker.check_variable_attributes(
-        foo=dict(a=None, b="b", c="wrong", d="d")
-    )
+    checker = Checker(str(tmp_path / "test.nc"), files_format="NETCDF")
+    actual = checker.check_variable_attributes(foo=dict(a="", b="b", c="wrong", d="d"))
     expected = {str(tmp_path / "test.nc"): {"foo": {"c": "c", "d": None}}}
     assert actual == expected
 
@@ -34,8 +32,8 @@ def test_global_attrs(tmp_path: pathlib.Path) -> None:
     ds = xr.Dataset(attrs={"a": "a", "b": "b", "c": "c"})
     ds.to_netcdf(tmp_path / "test.nc")
 
-    checker = Checker(str(tmp_path / "test.nc"), format="NETCDF")
-    actual = checker.check_global_attributes(a=None, b="b", c="wrong", d="d")
+    checker = Checker(str(tmp_path / "test.nc"), files_format="NETCDF")
+    actual = checker.check_global_attributes(a="", b="b", c="wrong", d="d")
     expected = {str(tmp_path / "test.nc"): {"c": "c", "d": None}}
     assert actual == expected
 
@@ -46,7 +44,7 @@ def test_cf_compliance(tmp_path: pathlib.Path) -> None:
     ds["foo"].attrs["standard_name"] = "unknown"
     ds.to_netcdf(tmp_path / "non-compliant.nc")
 
-    checker = Checker(str(tmp_path / "*compliant.nc"), format="NETCDF")
+    checker = Checker(str(tmp_path / "*compliant.nc"), files_format="NETCDF")
     actual = checker.check_cf_compliance(None)
     assert set(actual) == {str(tmp_path / "non-compliant.nc")}
 
@@ -56,7 +54,7 @@ def test_temporal_resolution(tmp_path: pathlib.Path) -> None:
         da = xr.DataArray(date, name="time")
         da.to_netcdf(tmp_path / f"{date}.nc")
 
-    checker = Checker(str(tmp_path / "*.nc"), format="NETCDF")
+    checker = Checker(str(tmp_path / "*.nc"), files_format="NETCDF")
     actual = checker.check_temporal_resolution("time", "1900-01-01", "1900-01-02", "1D")
     assert actual == {}
 
@@ -78,7 +76,7 @@ def test_completeness_without_mask(tmp_path: pathlib.Path) -> None:
         }
     ).to_netcdf(tmp_path / "test.nc")
 
-    checker = Checker(str(tmp_path / "test.nc"), format="NETCDF")
+    checker = Checker(str(tmp_path / "test.nc"), files_format="NETCDF")
     actual = checker.check_completeness(None, None, None, False)
     expected = {str(tmp_path / "test.nc"): {"wrong0", "wrong1"}}
 
@@ -112,7 +110,7 @@ def test_completeness_with_mask(
         ds["mask"] = mask
     ds.to_netcdf(tmp_path / "test.nc")
 
-    checker = Checker(str(tmp_path / "test.nc"), format="NETCDF")
+    checker = Checker(str(tmp_path / "test.nc"), files_format="NETCDF")
     actual = checker.check_completeness("mask", mask_file, None, ensure_null)
     if ensure_null:
         expected = {str(tmp_path / "test.nc"): {"wrong0", "wrong1", "wrong2"}}

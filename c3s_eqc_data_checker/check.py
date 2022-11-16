@@ -14,24 +14,54 @@
 
 import collections
 import dataclasses
+import functools
 import glob
+import inspect
 import tempfile
-from typing import Any, Iterator, Literal
+from typing import Any, Literal
 
 import cdo
 import cfchecker.cfchecks
 import pandas as pd
+import toml
 import xarray as xr
+
+
+def check_attributes(
+    expected: dict[str, Any], actual: dict[str, Any]
+) -> dict[str, Any]:
+    errors: dict[str, Any] = {}
+    for key, value in expected.items():
+        if key not in actual:
+            errors[key] = None
+        elif value != "" and actual[key] != value:
+            errors[key] = actual[key]
+
+    return errors
+
+
+def recursive_defaultdict() -> dict[Any, Any]:
+    return collections.defaultdict(recursive_defaultdict)
+
+
+def cdo_des_to_dict(path: str, destype: str) -> dict[str, str]:
+    griddes_dict = {}
+    for string in getattr(cdo.Cdo(), destype)(input=path):
+        if "=" in string:
+            string = string.replace("'", "").replace('"', "")
+            key, value = string.split("=")
+            griddes_dict[key.strip()] = value.strip()
+    return griddes_dict
 
 
 @dataclasses.dataclass
 class Checker:
-    pattern: str
-    format: Literal["GRIB", "NETCDF"]
+    files_pattern: str
+    files_format: Literal["GRIB", "NETCDF"]
 
     @property
     def backend(self) -> type:
-        match self.format:
+        match self.files_format:
             case "GRIB":
                 from . import grib
 
@@ -41,14 +71,17 @@ class Checker:
 
                 return netcdf.NetCDF
 
-        raise NotImplementedError(f"{self.format=}")
+        raise NotImplementedError(f"{self.files_format=}")
 
-    @property
-    def paths(self) -> Iterator[str]:
-        return glob.iglob(self.pattern)
+    @functools.cached_property
+    def paths(self) -> list[str]:
+        paths = glob.glob(self.files_pattern)
+        if not len(paths):
+            raise ValueError(f"No match for {self.files_pattern=}")
+        return paths
 
-    def check_format(self, version: float | int | None) -> dict[str, str]:
-        expected_prefix = f"{self.format}{version if version else ''}"
+    def check_format(self, version: str | float | None) -> dict[str, str]:
+        expected_prefix = f"{self.files_format}{version if version else ''}"
         errors = {}
         for path in self.paths:
             full_format = self.backend(path).full_format
@@ -92,7 +125,7 @@ class Checker:
             else cfchecker.cfchecks.CFVersion(str(version))
         )
 
-        errors = {}
+        errors = recursive_defaultdict()
         with tempfile.TemporaryDirectory() as tmpdir:
             inst = cfchecker.cfchecks.CFChecker(
                 cacheTables=True,
@@ -102,7 +135,7 @@ class Checker:
                 silent=True,
             )
             for path in self.paths:
-                if self.format == "NETCDF":
+                if self.files_format == "NETCDF":
                     inst.checker(path)
                 else:
                     # Save a small sample as netcdf
@@ -114,17 +147,21 @@ class Checker:
                         self.backend(path).ds.to_netcdf(tmpfile.name)
                         inst.checker(tmpfile.name)
 
-                counts = inst.get_counts()
-                if counts["ERROR"] or counts["FATAL"]:
-                    errors[path] = inst.results
+                for log in ("FATAL", "ERROR"):
+                    if error := inst.results["global"][log]:
+                        errors[path].get("global", []).extend(
+                            [f"{log}: {err}" for err in error]
+                        )
+                    for key, value in inst.results["variables"].items():
+                        if error := value[log]:
+                            errors[path]["variables"].get(key, []).extend(
+                                [f"{log}: {err}" for err in error]
+                            )
         return errors
 
     def check_temporal_resolution(
-        self, name: str, min: str, max: str, resolution: str
+        self, name: str, min: str | None, max: str | None, resolution: str | None
     ) -> dict[str, str | set[str]]:
-        min = pd.to_datetime(min)
-        max = pd.to_datetime(max)
-        resolution = pd.to_timedelta(resolution)
 
         times = []
         for path in self.paths:
@@ -133,16 +170,21 @@ class Checker:
         time = time.sortby(time)
 
         errors: dict[str, str | set[str]] = {}
-        if (actual_min := time.min()) != min:
-            errors["min"] = str(actual_min.values)
 
-        if (actual_max := time.max()) != max:
-            errors["max"] = str(actual_max.values)
+        if min is not None:
+            if (actual_min := time.min()) != pd.to_datetime(min):
+                errors["min"] = str(actual_min.values)
 
-        if time.size <= 1 and resolution != pd.to_timedelta(0):
-            errors["resolution"] = "0"
-        elif ((actual_res := time.diff(name)) != resolution).any():
-            errors["resolution"] = {str(value) for value in actual_res.values}
+        if max is not None:
+            if (actual_max := time.max()) != pd.to_datetime(max):
+                errors["max"] = str(actual_max.values)
+
+        if resolution is not None:
+            res_td = pd.to_timedelta(resolution)
+            if time.size <= 1 and res_td != pd.to_timedelta(0):
+                errors["resolution"] = "0"
+            elif ((actual_res := time.diff(name)) != res_td).any():
+                errors["resolution"] = {str(value) for value in actual_res.values}
 
         return errors
 
@@ -186,7 +228,7 @@ class Checker:
 
         return errors
 
-    def check_spatial_resolution(
+    def _check_spatial_resolution(
         self, destype: str, expected_attrs: dict[str, str]
     ) -> dict[str, dict[str, str | None]]:
         errors = {}
@@ -200,32 +242,56 @@ class Checker:
     def check_horizontal_resolution(
         self, **expected_griddes: str
     ) -> dict[str, dict[str, str | None]]:
-        return self.check_spatial_resolution("griddes", expected_griddes)
+        return self._check_spatial_resolution("griddes", expected_griddes)
 
     def check_vertical_resolution(
-        self, **expected_griddes: str
+        self, **expected_zaxisdes: str
     ) -> dict[str, dict[str, str | None]]:
-        return self.check_spatial_resolution("zaxisdes", expected_griddes)
+        return self._check_spatial_resolution("zaxisdes", expected_zaxisdes)
 
 
-def check_attributes(
-    expected: dict[str, Any], actual: dict[str, Any]
-) -> dict[str, Any]:
-    errors: dict[str, Any] = {}
-    for key, value in expected.items():
-        if key not in actual:
-            errors[key] = None
-        elif value is not None and actual[key] != value:
-            errors[key] = actual[key]
+class ConfigChecker:
+    def __init__(self, configfile: str):
+        self.config = toml.load(configfile)
+        self.errors: dict[str, Any] = {}
 
-    return errors
+    def get_kwargs_from_config(
+        self, keys: set[str], allow_missing: bool
+    ) -> dict[str, Any]:
+        kwargs = {}
+        for key in keys:
+            config = self.config
 
+            split = key.split(".")
+            for k in split[:-1]:
+                if allow_missing:
+                    config = config.get(k, {})
+                else:
+                    config = config[k]
 
-def cdo_des_to_dict(path: str, destype: str) -> dict[str, str]:
-    griddes_dict = {}
-    for string in getattr(cdo.Cdo(), destype)(input=path):
-        if "=" in string:
-            string = string.replace("'", "").replace('"', "")
-            key, value = string.split("=")
-            griddes_dict[key.strip()] = value.strip()
-    return griddes_dict
+            k = split[-1]
+            if allow_missing:
+                kwargs[k] = config.pop(k, None)
+            else:
+                kwargs[k] = config.pop(k)
+        return kwargs
+
+    @functools.cached_property
+    def checker(self) -> Checker:
+        kwargs = self.get_kwargs_from_config(
+            set(inspect.getfullargspec(Checker).args) - {"self"}, allow_missing=False
+        )
+        return Checker(**kwargs)
+
+    def check(self, name: str) -> None:
+        if name not in self.config:
+            return None
+
+        method = getattr(self.checker, "_".join(["check", name]))
+        keys = {
+            ".".join([name, key])
+            for key in inspect.getfullargspec(method).args
+            if key != "self"
+        }
+        kwargs = self.get_kwargs_from_config(keys, allow_missing=True)
+        self.errors[name] = method(**kwargs)

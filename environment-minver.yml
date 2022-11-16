@@ -11,4 +11,6 @@ dependencies:
 - netCDF4
 - python-eccodes
 - python-cdo
+- toml
+- typer
 - xarray

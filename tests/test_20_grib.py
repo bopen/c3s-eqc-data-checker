@@ -12,14 +12,14 @@ def grib_path() -> pathlib.Path:
 
 
 def test_format(grib_path: pathlib.Path) -> None:
-    checker = Checker(str(grib_path / "GRIB*.tmpl"), format="GRIB")
-    assert checker.check_format(2) == {str(grib_path / "GRIB1.tmpl"): "GRIB1"}
+    checker = Checker(str(grib_path / "GRIB*.tmpl"), files_format="GRIB")
+    assert checker.check_format("2") == {str(grib_path / "GRIB1.tmpl"): "GRIB1"}
 
 
 def test_variable_attrs(grib_path: pathlib.Path) -> None:
-    checker = Checker(str(grib_path / "GRIB*.tmpl"), format="GRIB")
+    checker = Checker(str(grib_path / "GRIB*.tmpl"), files_format="GRIB")
     actual = checker.check_variable_attributes(
-        t=dict(edition=2, cfName=None, cfVarName="t", units="wrong", foo="foo")
+        t=dict(edition=2, cfName="", cfVarName="t", units="wrong", foo="foo")
     )
     expected = {
         str(grib_path / "GRIB1.tmpl"): {"t": None},
@@ -30,9 +30,9 @@ def test_variable_attrs(grib_path: pathlib.Path) -> None:
 
 
 def test_global_attrs(grib_path: pathlib.Path) -> None:
-    checker = Checker(str(grib_path / "GRIB*.tmpl"), format="GRIB")
+    checker = Checker(str(grib_path / "GRIB*.tmpl"), files_format="GRIB")
     actual = checker.check_global_attributes(
-        subCentre=None, centre="ecmf", edition=2, foo="foo"
+        subCentre="", centre="ecmf", edition=2, foo="foo"
     )
     expected = {
         str(grib_path / "GRIB1.tmpl"): {"edition": 1, "foo": None},
@@ -47,13 +47,13 @@ def test_cf_compliance(tmp_path: pathlib.Path, grib_path: pathlib.Path) -> None:
         grib_path / "reduced_ll_sfc_grib2.tmpl"
     )
 
-    checker = Checker(str(tmp_path / "*compliant.grib"), format="GRIB")
+    checker = Checker(str(tmp_path / "*compliant.grib"), files_format="GRIB")
     actual = checker.check_cf_compliance(None)
     assert set(actual) == {str(tmp_path / "non-compliant.grib")}
 
 
 def test_temporal_resolution(grib_path: pathlib.Path) -> None:
-    checker = Checker(str(grib_path / "GRIB2.tmpl"), format="GRIB")
+    checker = Checker(str(grib_path / "GRIB2.tmpl"), files_format="GRIB")
     actual = checker.check_temporal_resolution(
         "time", "2007-03-23T12", "2007-03-23T12", "0"
     )
@@ -71,7 +71,7 @@ def test_temporal_resolution(grib_path: pathlib.Path) -> None:
 
 
 def test_horizontal_resolution(grib_path: pathlib.Path) -> None:
-    checker = Checker(str(grib_path / "GRIB2.tmpl"), format="GRIB")
+    checker = Checker(str(grib_path / "GRIB2.tmpl"), files_format="GRIB")
     actual = checker.check_horizontal_resolution(gridtype="lonlat", xinc="2", yinc="-2")
     assert actual == {}
 
@@ -81,7 +81,7 @@ def test_horizontal_resolution(grib_path: pathlib.Path) -> None:
 
 
 def test_vertical_resolution(grib_path: pathlib.Path) -> None:
-    checker = Checker(str(grib_path / "GRIB2.tmpl"), format="GRIB")
+    checker = Checker(str(grib_path / "GRIB2.tmpl"), files_format="GRIB")
     actual = checker.check_vertical_resolution(
         zaxistype="surface", size="1", levels="0"
     )
