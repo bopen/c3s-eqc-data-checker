@@ -59,7 +59,7 @@ class Checker:
     files_pattern: str
     files_format: Literal["GRIB", "NETCDF"]
 
-    @property
+    @functools.cached_property
     def backend(self) -> type:
         match self.files_format:
             case "GRIB":
@@ -80,7 +80,7 @@ class Checker:
             raise ValueError(f"No match for {self.files_pattern=}")
         return paths
 
-    def check_format(self, version: str | float | None) -> dict[str, str]:
+    def check_format(self, version: str | float | None) -> dict[str, Any]:
         expected_prefix = f"{self.files_format}{version if version else ''}"
         errors = {}
         for path in self.paths:
@@ -91,7 +91,7 @@ class Checker:
 
     def _check_variable_attrs_or_sizes(
         self, attr_name: str, **expected: dict[str, Any]
-    ) -> dict[str, dict[str, None | dict[str, Any]]]:
+    ) -> dict[str, Any]:
         errors: dict[str, dict[str, None | dict[str, Any]]] = collections.defaultdict(
             dict
         )
@@ -106,21 +106,17 @@ class Checker:
                         errors[path][var] = error
         return errors
 
-    def check_variable_attributes(
-        self, **expected: dict[str, Any]
-    ) -> dict[str, dict[str, None | dict[str, Any]]]:
+    def check_variable_attributes(self, **expected: dict[str, Any]) -> dict[str, Any]:
 
         return self._check_variable_attrs_or_sizes("variable_attrs", **expected)
 
-    def check_variable_dimensions(
-        self, **expected: dict[str, Any]
-    ) -> dict[str, dict[str, None | dict[str, int | None]]]:
+    def check_variable_dimensions(self, **expected: dict[str, Any]) -> dict[str, Any]:
 
         return self._check_variable_attrs_or_sizes("variable_sizes", **expected)
 
     def _check_global_attrs_or_sizes(
         self, attr_name: str, **expected: Any
-    ) -> dict[str, dict[str, Any]]:
+    ) -> dict[str, Any]:
         errors = {}
         for path in self.paths:
             actual = getattr(self.backend(path), attr_name)
@@ -129,20 +125,18 @@ class Checker:
                 errors[path] = error
         return errors
 
-    def check_global_attributes(self, **expected: Any) -> dict[str, dict[str, Any]]:
+    def check_global_attributes(self, **expected: Any) -> dict[str, Any]:
         return self._check_global_attrs_or_sizes("global_attrs", **expected)
 
-    def check_global_dimensions(
-        self, **expected: Any
-    ) -> dict[str, dict[str, int | None]]:
+    def check_global_dimensions(self, **expected: Any) -> dict[str, Any]:
         return self._check_global_attrs_or_sizes("global_sizes", **expected)
 
     def check_cf_compliance(self, version: float | str | None) -> dict[str, Any]:
 
         version = (
-            cfchecker.cfchecks.CFVersion()
-            if version is None
-            else cfchecker.cfchecks.CFVersion(str(version))
+            cfchecker.cfchecks.CFVersion(str(version))
+            if version
+            else cfchecker.cfchecks.CFVersion()
         )
 
         errors = recursive_defaultdict()
@@ -167,21 +161,14 @@ class Checker:
                         self.backend(path).ds.to_netcdf(tmpfile.name)
                         inst.checker(tmpfile.name)
 
-                for log in ("FATAL", "ERROR"):
-                    if error := inst.results["global"][log]:
-                        errors[path].get("global", []).extend(
-                            [f"{log}: {err}" for err in error]
-                        )
-                    for key, value in inst.results["variables"].items():
-                        if error := value[log]:
-                            errors[path]["variables"].get(key, []).extend(
-                                [f"{log}: {err}" for err in error]
-                            )
+                counts = inst.get_counts()
+                if counts["ERROR"] or counts["FATAL"]:
+                    errors[path] = inst.results
         return errors
 
     def check_temporal_resolution(
         self, name: str, min: str | None, max: str | None, resolution: str | None
-    ) -> dict[str, str | set[str]]:
+    ) -> dict[str, Any]:
 
         times = []
         for path in self.paths:
@@ -214,7 +201,7 @@ class Checker:
         mask_file: str | None,
         variables: list[str] | set[str] | tuple[str] | None,
         ensure_null: bool,
-    ) -> dict[str, set[str]]:
+    ) -> dict[str, Any]:
 
         mask = None
         if mask_file:
@@ -250,7 +237,7 @@ class Checker:
 
     def _check_spatial_resolution(
         self, destype: str, expected_attrs: dict[str, str]
-    ) -> dict[str, dict[str, str | None]]:
+    ) -> dict[str, Any]:
         errors = {}
         for path in self.paths:
             actual_attrs = cdo_des_to_dict(path, destype)
@@ -259,59 +246,28 @@ class Checker:
                 errors[path] = error
         return errors
 
-    def check_horizontal_resolution(
-        self, **expected_griddes: str
-    ) -> dict[str, dict[str, str | None]]:
+    def check_horizontal_resolution(self, **expected_griddes: str) -> dict[str, Any]:
         return self._check_spatial_resolution("griddes", expected_griddes)
 
-    def check_vertical_resolution(
-        self, **expected_zaxisdes: str
-    ) -> dict[str, dict[str, str | None]]:
+    def check_vertical_resolution(self, **expected_zaxisdes: str) -> dict[str, Any]:
         return self._check_spatial_resolution("zaxisdes", expected_zaxisdes)
 
 
 class ConfigChecker:
     def __init__(self, configfile: str):
         self.config = toml.load(configfile)
-        self.errors: dict[str, Any] = {}
-
-    def get_kwargs_from_config(
-        self, keys: set[str], allow_missing: bool
-    ) -> dict[str, Any]:
-        kwargs = {}
-        for key in keys:
-            config = self.config
-
-            split = key.split(".")
-            for k in split[:-1]:
-                if allow_missing:
-                    config = config.get(k, {})
-                else:
-                    config = config[k]
-
-            k = split[-1]
-            if allow_missing:
-                kwargs[k] = config.pop(k, None)
-            else:
-                kwargs[k] = config.pop(k)
-        return kwargs
 
     @functools.cached_property
     def checker(self) -> Checker:
-        kwargs = self.get_kwargs_from_config(
-            set(inspect.getfullargspec(Checker).args) - {"self"}, allow_missing=False
-        )
+        args = set(inspect.getfullargspec(Checker).args) - {"self"}
+        kwargs = {arg: self.config[arg] for arg in args}
         return Checker(**kwargs)
 
-    def check(self, name: str) -> None:
-        if name not in self.config:
-            return None
-
-        method = getattr(self.checker, "_".join(["check", name]))
-        keys = {
-            ".".join([name, key])
-            for key in inspect.getfullargspec(method).args
-            if key != "self"
-        }
-        kwargs = self.get_kwargs_from_config(keys, allow_missing=True)
-        self.errors[name] = method(**kwargs)
+    def check(self, name: str) -> Any:
+        method = getattr(self.checker, f"check_{name}")
+        fullargsspec = inspect.getfullargspec(method)
+        args = set(fullargsspec.args) - {"self"}
+        kwargs = {arg: self.config.get(name, {}).get(arg, None) for arg in args}
+        if fullargsspec.varkw:
+            kwargs.update(self.config.get(name, {}))
+        return method(**kwargs)

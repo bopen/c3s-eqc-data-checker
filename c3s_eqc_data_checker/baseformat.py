@@ -1,4 +1,5 @@
 import abc
+import functools
 import importlib
 from typing import Any, Literal
 
@@ -11,7 +12,7 @@ class BaseFormat:
     def __init__(self, path: str) -> None:
         self.path = path
 
-    @property
+    @functools.cached_property
     def chunks(self) -> Literal["auto", None]:
         return "auto" if importlib.util.find_spec("dask") else None
 
@@ -20,7 +21,7 @@ class BaseFormat:
     def engine(self) -> str:
         pass
 
-    @property
+    @functools.cached_property
     def ds(self) -> xr.Dataset:
         return xr.open_dataset(self.path, chunks=self.chunks, engine=self.engine)
 
@@ -34,7 +35,7 @@ class BaseFormat:
     def variable_attrs(self) -> dict[str, dict[str, Any]]:
         pass
 
-    @property
+    @functools.cached_property
     def variable_sizes(self) -> dict[str, dict[str, int]]:
         return {
             str(name): {str(k): v for k, v in variable.sizes.items()}
@@ -46,6 +47,6 @@ class BaseFormat:
     def global_attrs(self) -> dict[str, Any]:
         pass
 
-    @property
+    @functools.cached_property
     def global_sizes(self) -> dict[str, int]:
         return {str(k): v for k, v in self.ds.sizes.items()}

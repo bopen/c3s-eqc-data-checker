@@ -1,3 +1,4 @@
+import functools
 from typing import Any
 
 import xarray as xr
@@ -6,23 +7,23 @@ from . import baseformat
 
 
 class Grib(baseformat.BaseFormat):
-    @property
+    @functools.cached_property
     def engine(self) -> str:
         return "cfgrib"
 
-    @property
+    @functools.cached_property
     def full_format(self) -> str:
         edition = self.ds.attrs.get("GRIB_edition", "")
         return f"GRIB{edition}"
 
-    @property
+    @functools.cached_property
     def variable_attrs(self) -> dict[str, dict[str, Any]]:
         return {
             str(name): {**self.global_attrs, **original_grib_attributes(var)}
             for name, var in self.ds.variables.items()
         }
 
-    @property
+    @functools.cached_property
     def global_attrs(self) -> dict[str, Any]:
         return original_grib_attributes(self.ds)
 
