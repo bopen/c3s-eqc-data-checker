@@ -29,6 +29,19 @@ def test_variable_attrs(grib_path: pathlib.Path) -> None:
     assert expected == actual
 
 
+def test_variable_dimensions(grib_path: pathlib.Path) -> None:
+    checker = Checker(str(grib_path / "GRIB*.tmpl"), files_format="GRIB")
+    actual = checker.check_variable_dimensions(
+        t=dict(longitude=16, latitude="", foo=10)
+    )
+    expected = {
+        str(grib_path / "GRIB1.tmpl"): {"t": None},
+        str(grib_path / "GRIB2.tmpl"): {"t": {"foo": None}},
+    }
+
+    assert expected == actual
+
+
 def test_global_attrs(grib_path: pathlib.Path) -> None:
     checker = Checker(str(grib_path / "GRIB*.tmpl"), files_format="GRIB")
     actual = checker.check_global_attributes(
@@ -38,6 +51,17 @@ def test_global_attrs(grib_path: pathlib.Path) -> None:
         str(grib_path / "GRIB1.tmpl"): {"edition": 1, "foo": None},
         str(grib_path / "GRIB2.tmpl"): {"foo": None},
     }
+    assert expected == actual
+
+
+def test_global_dimensions(grib_path: pathlib.Path) -> None:
+    checker = Checker(str(grib_path / "GRIB*.tmpl"), files_format="GRIB")
+    actual = checker.check_global_dimensions(longitude=16, latitude="", foo=10)
+    expected = {
+        str(grib_path / "GRIB1.tmpl"): {"longitude": 360, "foo": None},
+        str(grib_path / "GRIB2.tmpl"): {"foo": None},
+    }
+
     assert expected == actual
 
 

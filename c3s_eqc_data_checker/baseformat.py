@@ -35,6 +35,17 @@ class BaseFormat:
         pass
 
     @property
+    def variable_sizes(self) -> dict[str, dict[str, int]]:
+        return {
+            str(name): {str(k): v for k, v in variable.sizes.items()}
+            for name, variable in self.ds.variables.items()
+        }
+
+    @property
     @abc.abstractmethod
     def global_attrs(self) -> dict[str, Any]:
         pass
+
+    @property
+    def global_sizes(self) -> dict[str, int]:
+        return {str(k): v for k, v in self.ds.sizes.items()}

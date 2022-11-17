@@ -1,5 +1,6 @@
 import pathlib
 
+import numpy as np
 import pandas as pd
 import pytest
 import xarray as xr
@@ -28,6 +29,18 @@ def test_variables_attrs(tmp_path: pathlib.Path) -> None:
     assert actual == expected
 
 
+def test_variables_dimensions(tmp_path: pathlib.Path) -> None:
+    da = xr.DataArray(np.random.rand(0, 1, 2), name="foo")
+    da.to_netcdf(tmp_path / "test.nc")
+
+    checker = Checker(str(tmp_path / "test.nc"), files_format="NETCDF")
+    actual = checker.check_variable_dimensions(
+        foo=dict(dim_0="", dim_1=1, dim_2=10, dim_3=3)
+    )
+    expected = {str(tmp_path / "test.nc"): {"foo": {"dim_2": 2, "dim_3": None}}}
+    assert actual == expected
+
+
 def test_global_attrs(tmp_path: pathlib.Path) -> None:
     ds = xr.Dataset(attrs={"a": "a", "b": "b", "c": "c"})
     ds.to_netcdf(tmp_path / "test.nc")
@@ -35,6 +48,16 @@ def test_global_attrs(tmp_path: pathlib.Path) -> None:
     checker = Checker(str(tmp_path / "test.nc"), files_format="NETCDF")
     actual = checker.check_global_attributes(a="", b="b", c="wrong", d="d")
     expected = {str(tmp_path / "test.nc"): {"c": "c", "d": None}}
+    assert actual == expected
+
+
+def test_global_dimensions(tmp_path: pathlib.Path) -> None:
+    da = xr.DataArray(np.random.rand(0, 1, 2))
+    da.to_netcdf(tmp_path / "test.nc")
+
+    checker = Checker(str(tmp_path / "test.nc"), files_format="NETCDF")
+    actual = checker.check_global_dimensions(dim_0="", dim_1=1, dim_2=10, dim_3=3)
+    expected = {str(tmp_path / "test.nc"): {"dim_2": 2, "dim_3": None}}
     assert actual == expected
 
 

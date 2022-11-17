@@ -27,7 +27,7 @@ import toml
 import xarray as xr
 
 
-def check_attributes(
+def check_attributes_or_sizes(
     expected: dict[str, Any], actual: dict[str, Any]
 ) -> dict[str, Any]:
     errors: dict[str, Any] = {}
@@ -89,33 +89,53 @@ class Checker:
                 errors[path] = full_format
         return errors
 
-    def check_variable_attributes(
-        self, **expected_attrs: dict[str, Any]
+    def _check_variable_attrs_or_sizes(
+        self, attr_name: str, **expected: dict[str, Any]
     ) -> dict[str, dict[str, None | dict[str, Any]]]:
         errors: dict[str, dict[str, None | dict[str, Any]]] = collections.defaultdict(
             dict
         )
         for path in self.paths:
-            actual_attrs = self.backend(path).variable_attrs
-            for var, expected_var_attrs in expected_attrs.items():
-                if var not in actual_attrs:
+            actual = getattr(self.backend(path), attr_name)
+            for var, expected_var_attrs in expected.items():
+                if var not in actual:
                     errors[path][var] = None
                 else:
-                    error = check_attributes(expected_var_attrs, actual_attrs[var])
+                    error = check_attributes_or_sizes(expected_var_attrs, actual[var])
                     if error:
                         errors[path][var] = error
         return errors
 
-    def check_global_attributes(
-        self, **expected_global_attrs: Any
+    def check_variable_attributes(
+        self, **expected: dict[str, Any]
+    ) -> dict[str, dict[str, None | dict[str, Any]]]:
+
+        return self._check_variable_attrs_or_sizes("variable_attrs", **expected)
+
+    def check_variable_dimensions(
+        self, **expected: dict[str, Any]
+    ) -> dict[str, dict[str, None | dict[str, int | None]]]:
+
+        return self._check_variable_attrs_or_sizes("variable_sizes", **expected)
+
+    def _check_global_attrs_or_sizes(
+        self, attr_name: str, **expected: Any
     ) -> dict[str, dict[str, Any]]:
         errors = {}
         for path in self.paths:
-            actual_global_attrs = self.backend(path).global_attrs
-            error = check_attributes(expected_global_attrs, actual_global_attrs)
+            actual = getattr(self.backend(path), attr_name)
+            error = check_attributes_or_sizes(expected, actual)
             if error:
                 errors[path] = error
         return errors
+
+    def check_global_attributes(self, **expected: Any) -> dict[str, dict[str, Any]]:
+        return self._check_global_attrs_or_sizes("global_attrs", **expected)
+
+    def check_global_dimensions(
+        self, **expected: Any
+    ) -> dict[str, dict[str, int | None]]:
+        return self._check_global_attrs_or_sizes("global_sizes", **expected)
 
     def check_cf_compliance(self, version: float | str | None) -> dict[str, Any]:
 
@@ -234,7 +254,7 @@ class Checker:
         errors = {}
         for path in self.paths:
             actual_attrs = cdo_des_to_dict(path, destype)
-            error = check_attributes(expected_attrs, actual_attrs)
+            error = check_attributes_or_sizes(expected_attrs, actual_attrs)
             if error:
                 errors[path] = error
         return errors

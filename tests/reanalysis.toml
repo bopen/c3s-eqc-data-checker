@@ -27,5 +27,13 @@ units = ""
 standard_name = 1
 units = ""
 
+[variable_dimensions.bar]
+longitude = 1
+latitude = ""
+
+[variable_dimensions.foo]
+longitude = 2
+latitude = ""
+
 [vertical_resolution]
 b = "bella"
