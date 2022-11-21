@@ -1,4 +1,5 @@
 import logging
+import pathlib
 from typing import Any
 
 import rich.logging
@@ -9,7 +10,15 @@ import c3s_eqc_data_checker
 logging.basicConfig(
     level="INFO",
     format="%(message)s",
-    handlers=[rich.logging.RichHandler(show_time=False, show_path=False, rich_tracebacks=True, markup=True, highlighter=None)],
+    handlers=[
+        rich.logging.RichHandler(
+            show_time=False,
+            show_path=False,
+            rich_tracebacks=True,
+            markup=True,
+            highlighter=None,
+        )
+    ],
 )
 
 
@@ -39,7 +48,7 @@ def make_error_prints(
 def main(
     configfile: str = typer.Argument(..., help="Path to configuration file")
 ) -> None:
-    logging.info(f"CONFIGFILE: {configfile}")
+    logging.info(f"CONFIGFILE: {pathlib.Path(configfile).resolve()}")
 
     checker = c3s_eqc_data_checker.ConfigChecker(configfile)
     error_count = 0

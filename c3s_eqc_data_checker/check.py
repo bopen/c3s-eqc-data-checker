@@ -17,13 +17,14 @@ import dataclasses
 import functools
 import glob
 import inspect
+import pathlib
 import tempfile
-import rich.progress
-from typing import Any, Literal
+from typing import Any, Iterable, Literal
 
 import cdo
 import cfchecker.cfchecks
 import pandas as pd
+import rich.progress
 import toml
 import xarray as xr
 
@@ -84,7 +85,7 @@ class Checker:
         return paths
 
     @property
-    def paths_iterator(self):
+    def paths_iterator(self) -> Iterable[str]:
         return rich.progress.track(self.paths, description="")
 
     def check_format(self, version: str | float | None) -> dict[str, Any]:
@@ -268,7 +269,7 @@ class Checker:
 
 
 class ConfigChecker:
-    def __init__(self, configfile: str):
+    def __init__(self, configfile: str | pathlib.Path):
         self.config = toml.load(configfile)
 
     @functools.cached_property
