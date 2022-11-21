@@ -18,6 +18,7 @@ dependencies:
 - pandas-stubs
 - python-eccodes
 - python-cdo
+- rich
 - toml
 - typer
 - types-toml

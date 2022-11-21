@@ -28,13 +28,15 @@ import xarray as xr
 
 
 def check_attributes_or_sizes(
-    expected: dict[str, Any], actual: dict[str, Any]
+    expected: dict[str, Any],
+    actual: dict[str, Any],
+    always_check_value: bool,
 ) -> dict[str, Any]:
     errors: dict[str, Any] = {}
     for key, value in expected.items():
         if key not in actual:
             errors[key] = None
-        elif value != "" and actual[key] != value:
+        elif (always_check_value or value != "") and actual[key] != value:
             errors[key] = actual[key]
 
     return errors
@@ -101,7 +103,9 @@ class Checker:
                 if var not in actual:
                     errors[path][var] = None
                 else:
-                    error = check_attributes_or_sizes(expected_var_attrs, actual[var])
+                    error = check_attributes_or_sizes(
+                        expected_var_attrs, actual[var], always_check_value=False
+                    )
                     if error:
                         errors[path][var] = error
         return errors
@@ -120,7 +124,9 @@ class Checker:
         errors = {}
         for path in self.paths:
             actual = getattr(self.backend(path), attr_name)
-            error = check_attributes_or_sizes(expected, actual)
+            error = check_attributes_or_sizes(
+                expected, actual, always_check_value=False
+            )
             if error:
                 errors[path] = error
         return errors
@@ -200,7 +206,7 @@ class Checker:
         mask_variable: str | None,
         mask_file: str | None,
         variables: list[str] | set[str] | tuple[str] | None,
-        ensure_null: bool,
+        ensure_null: bool | None,
     ) -> dict[str, Any]:
 
         mask = None
@@ -236,12 +242,15 @@ class Checker:
         return errors
 
     def _check_spatial_resolution(
-        self, destype: str, expected_attrs: dict[str, str]
+        self, destype: str, expected_attrs: dict[str, Any]
     ) -> dict[str, Any]:
+        expected_attrs = {k: str(v) for k, v in expected_attrs.items()}
         errors = {}
         for path in self.paths:
             actual_attrs = cdo_des_to_dict(path, destype)
-            error = check_attributes_or_sizes(expected_attrs, actual_attrs)
+            error = check_attributes_or_sizes(
+                expected_attrs, actual_attrs, always_check_value=True
+            )
             if error:
                 errors[path] = error
         return errors
@@ -262,6 +271,14 @@ class ConfigChecker:
         args = set(inspect.getfullargspec(Checker).args) - {"self"}
         kwargs = {arg: self.config[arg] for arg in args}
         return Checker(**kwargs)
+
+    @functools.cached_property
+    def available_checks(self) -> list[str]:
+        return sorted(
+            name.split("check_", 1)[-1]
+            for name in dir(self.checker)
+            if name.startswith("check_")
+        )
 
     def check(self, name: str) -> Any:
         method = getattr(self.checker, f"check_{name}")

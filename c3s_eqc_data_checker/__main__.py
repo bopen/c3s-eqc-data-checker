@@ -1,35 +1,25 @@
 import logging
 from typing import Any
 
+import rich.logging
 import typer
 
 import c3s_eqc_data_checker
 
-try:
-    import rich.logging
-
-    HANDLERS = [rich.logging.RichHandler(rich_tracebacks=True)]
-except ImportError:
-    HANDLERS = []
-
-logging.basicConfig(level="INFO", format="%(message)s", handlers=HANDLERS)
-
-CHECKS = (
-    "format",
-    "variable_attributes",
-    "variable_dimensions",
-    "temporal_resolution",
-    "horizontal_resolution",
-    "vertical_resolution",
-    "global_attributes",
-    "global_dimensions",
-    "cf_compliance",
+logging.basicConfig(
+    level="INFO",
+    format="%(message)s",
+    handlers=[rich.logging.RichHandler(rich_tracebacks=True)],
 )
 
-logging.basicConfig(level="INFO")
 
-
-def log_errors(errors: dict[str, Any], nest: int = 1, indent: int = 4) -> None:
+def make_error_prints(
+    errors: dict[str, Any],
+    prints: list[str] | None = None,
+    nest: int = 1,
+    indent: int = 2,
+) -> list[str]:
+    prints = prints or []
     tab = " " * indent * nest
     for key, value in errors.items():
         if isinstance(value, dict):
@@ -37,36 +27,51 @@ def log_errors(errors: dict[str, Any], nest: int = 1, indent: int = 4) -> None:
                 # CFChecks
                 for log in ("FATAL", "ERROR"):
                     for line in value[log]:
-                        logging.error(f"{tab}{key}: {line}")
+                        prints.append(f"{tab}{key}: {line}")
             else:
-                logging.error(f"{tab}{key}:")
-                log_errors(value, nest + 1)
+                prints.append(f"{tab}{key}:")
+                make_error_prints(value, prints, nest + 1)
         else:
-            logging.error(f"{tab}{key}: {value}")
+            prints.append(f"{tab}{key}: {value!r}")
+    return prints
 
 
-def main(configfile: str) -> None:
+def main(
+    configfile: str = typer.Argument(..., help="Path to configuration file")
+) -> None:
+    logging.info(f"CONFIGFILE: {configfile}")
+
     checker = c3s_eqc_data_checker.ConfigChecker(configfile)
-    logging.info(f"data-checker version {c3s_eqc_data_checker.__version__!r}")
-    for check_name in CHECKS:
+    error_count = 0
+    reports = []
+
+    for check_name in checker.available_checks:
         if check_name not in checker.config:
-            logging.info(f"{check_name}: SKIPPED")
+            reports.append(f"{check_name}: [yellow]SKIPPED[/]")
             continue
 
-        logging.info(f"{check_name}: STARTED")
+        logging.info(f"Checking {check_name}")
         try:
             errors = checker.check(check_name)
         except Exception:
-            logging.exception(f"{check_name}: FATAL ERROR")
+            error_count += 1
+            reports.append(f"{check_name}: [red]ERROR[/]")
+            logging.exception("FATAL ERROR")
         else:
+            reports.append(
+                f"{check_name}: {'[red]ERROR[/]' if errors else '[green]PASSED[/]'}"
+            )
             if errors:
-                logging.error(f"{check_name}: ERROR")
-                log_errors(errors)
-            else:
-                logging.info(f"{check_name}: PASSED")
+                error_count += 1
+                logging.error("\n".join(make_error_prints(errors)))
+
+    logging.info("\n".join(reports), extra={"markup": True})
+    logging.info(f"[bold]Number of errors: {error_count}[/]", extra={"markup": True})
+    raise typer.Exit(code=error_count != 0)
 
 
 def run() -> None:
+    logging.info(f"VERSION: {c3s_eqc_data_checker.__version__}")
     typer.run(main)
 
 
