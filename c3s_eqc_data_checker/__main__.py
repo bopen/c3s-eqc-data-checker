@@ -9,7 +9,7 @@ import c3s_eqc_data_checker
 logging.basicConfig(
     level="INFO",
     format="%(message)s",
-    handlers=[rich.logging.RichHandler(rich_tracebacks=True)],
+    handlers=[rich.logging.RichHandler(show_time=False, show_path=False, rich_tracebacks=True, markup=True, highlighter=None)],
 )
 
 
@@ -56,17 +56,17 @@ def main(
         except Exception:
             error_count += 1
             reports.append(f"{check_name}: [red]ERROR[/]")
-            logging.exception("FATAL ERROR")
+            logging.exception(check_name)
         else:
             reports.append(
                 f"{check_name}: {'[red]ERROR[/]' if errors else '[green]PASSED[/]'}"
             )
             if errors:
                 error_count += 1
-                logging.error("\n".join(make_error_prints(errors)))
+                logging.error("\n".join([check_name] + make_error_prints(errors)))
 
-    logging.info("\n".join(reports), extra={"markup": True})
-    logging.info(f"[bold]Number of errors: {error_count}[/]", extra={"markup": True})
+    logging.info("\n".join(reports))
+    logging.info(f"[bold]Number of errors: {error_count}[/]")
     raise typer.Exit(code=error_count != 0)
 
 

@@ -18,6 +18,7 @@ import functools
 import glob
 import inspect
 import tempfile
+import rich.progress
 from typing import Any, Literal
 
 import cdo
@@ -82,10 +83,14 @@ class Checker:
             raise ValueError(f"No match for {self.files_pattern=}")
         return paths
 
+    @property
+    def paths_iterator(self):
+        return rich.progress.track(self.paths, description="")
+
     def check_format(self, version: str | float | None) -> dict[str, Any]:
         expected_prefix = f"{self.files_format}{version if version else ''}"
         errors = {}
-        for path in self.paths:
+        for path in self.paths_iterator:
             full_format = self.backend(path).full_format
             if not full_format.startswith(expected_prefix):
                 errors[path] = full_format
@@ -97,7 +102,7 @@ class Checker:
         errors: dict[str, dict[str, None | dict[str, Any]]] = collections.defaultdict(
             dict
         )
-        for path in self.paths:
+        for path in self.paths_iterator:
             actual = getattr(self.backend(path), attr_name)
             for var, expected_var_attrs in expected.items():
                 if var not in actual:
@@ -122,7 +127,7 @@ class Checker:
         self, attr_name: str, **expected: Any
     ) -> dict[str, Any]:
         errors = {}
-        for path in self.paths:
+        for path in self.paths_iterator:
             actual = getattr(self.backend(path), attr_name)
             error = check_attributes_or_sizes(
                 expected, actual, always_check_value=False
@@ -154,7 +159,7 @@ class Checker:
                 version=version,
                 silent=True,
             )
-            for path in self.paths:
+            for path in self.paths_iterator:
                 if self.files_format == "NETCDF":
                     inst.checker(path)
                 else:
@@ -177,7 +182,7 @@ class Checker:
     ) -> dict[str, Any]:
 
         times = []
-        for path in self.paths:
+        for path in self.paths_iterator:
             times.append(self.backend(path).ds[name])
         time = xr.concat(times, name)
         time = time.sortby(time)
@@ -218,7 +223,7 @@ class Checker:
             mask = self.backend(mask_file).ds[mask_variable].fillna(0)
 
         errors: dict[str, set[str]] = collections.defaultdict(set)
-        for path in self.paths:
+        for path in self.paths_iterator:
             ds = self.backend(path).ds
             if mask is None and mask_variable:
                 mask = ds[mask_variable].fillna(0)
@@ -246,7 +251,7 @@ class Checker:
     ) -> dict[str, Any]:
         expected_attrs = {k: str(v) for k, v in expected_attrs.items()}
         errors = {}
-        for path in self.paths:
+        for path in self.paths_iterator:
             actual_attrs = cdo_des_to_dict(path, destype)
             error = check_attributes_or_sizes(
                 expected_attrs, actual_attrs, always_check_value=True
