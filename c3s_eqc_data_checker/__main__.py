@@ -50,8 +50,11 @@ def make_error_prints(
             prints.append(f"{tab}{key}:")
             make_error_prints(value, prints, nest + 1)
         elif isinstance(value, str):
-            for line in value.split("\n"):
-                prints.append(f"{tab}{key}: {line}")
+            prefix = f"{tab}{key}: "
+            header, *lines = value.splitlines()
+            prints.append(f"{prefix}{header}")
+            for line in lines:
+                prints.append(f"{' '*len(prefix)}{line}")
         else:
             prints.append(f"{tab}{key}: {value!r}")
     return prints
