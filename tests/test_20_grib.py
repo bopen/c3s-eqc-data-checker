@@ -1,14 +1,6 @@
 import pathlib
 
-import eccodes
-import pytest
-
 from c3s_eqc_data_checker import Checker
-
-
-@pytest.fixture
-def grib_path() -> pathlib.Path:
-    return pathlib.Path(eccodes.codes_samples_path())
 
 
 def test_format(grib_path: pathlib.Path) -> None:

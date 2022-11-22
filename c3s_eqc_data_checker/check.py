@@ -58,6 +58,18 @@ def cdo_des_to_dict(path: str, destype: str) -> dict[str, str]:
     return griddes_dict
 
 
+def filter_cfchecker_results(results: Any) -> None:
+    for key, value in dict(results).items():
+        if isinstance(value, dict) and {"ERROR", "FATAL"} & set(value):
+            to_keep = value["FATAL"] + value["ERROR"]
+            if to_keep:
+                results[key] = "\n".join(to_keep)
+            else:
+                results.pop(key)
+        else:
+            filter_cfchecker_results(value)
+
+
 @dataclasses.dataclass
 class Checker:
     files_pattern: str
@@ -175,7 +187,9 @@ class Checker:
 
                 counts = inst.get_counts()
                 if counts["ERROR"] or counts["FATAL"]:
-                    errors[path] = inst.results
+                    results = dict(inst.results)
+                    filter_cfchecker_results(results)
+                    errors[path] = {k: v for k, v in results.items() if v}
         return errors
 
     def check_temporal_resolution(

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import collections
 import logging
 import pathlib
 from typing import Any
@@ -46,14 +47,11 @@ def make_error_prints(
     tab = " " * indent * nest
     for key, value in errors.items():
         if isinstance(value, dict):
-            if set(value) == {"FATAL", "ERROR", "WARN", "INFO", "VERSION"}:
-                # CFChecks
-                for log in ("FATAL", "ERROR"):
-                    for line in value[log]:
-                        prints.append(f"{tab}{key}: {line}")
-            else:
-                prints.append(f"{tab}{key}:")
-                make_error_prints(value, prints, nest + 1)
+            prints.append(f"{tab}{key}:")
+            make_error_prints(value, prints, nest + 1)
+        elif isinstance(value, str):
+            for line in value.split("\n"):
+                prints.append(f"{tab}{key}: {line}")
         else:
             prints.append(f"{tab}{key}: {value!r}")
     return prints
@@ -65,11 +63,12 @@ def main(
     logging.info(f"CONFIGFILE: {pathlib.Path(configfile).resolve()}")
 
     checker = c3s_eqc_data_checker.ConfigChecker(configfile)
-    error_count = 0
+    counter: dict[str, int] = collections.defaultdict(int)
     reports = []
 
     for check_name in checker.available_checks:
         if check_name not in checker.config:
+            counter["SKIPPED"] += 1
             reports.append(f"{check_name}: [yellow]SKIPPED[/]")
             continue
 
@@ -77,20 +76,22 @@ def main(
         try:
             errors = checker.check(check_name)
         except Exception:
-            error_count += 1
-            reports.append(f"{check_name}: [red]ERROR[/]")
+            counter["FAILED"] += 1
+            reports.append(f"{check_name}: [red]FAILED[/]")
             logging.exception(check_name)
         else:
-            reports.append(
-                f"{check_name}: {'[red]ERROR[/]' if errors else '[green]PASSED[/]'}"
-            )
             if errors:
-                error_count += 1
+                counter["FAILED"] += 1
+                reports.append(f"{check_name}: [red]FAILED[/]")
                 logging.error("\n".join([check_name] + make_error_prints(errors)))
+            else:
+                counter["PASSED"] += 1
+                reports.append(f"{check_name}: [green]PASSED[/]")
 
+    for key in ("PASSED", "SKIPPED", "FAILED"):
+        reports.append(f"[bold]{key}: {counter[key]}[/]")
     logging.info("\n".join(reports))
-    logging.info(f"[bold]Number of errors: {error_count}[/]")
-    raise typer.Exit(code=error_count != 0)
+    raise typer.Exit(code=counter["FAILED"] == 0)
 
 
 def run() -> None:
