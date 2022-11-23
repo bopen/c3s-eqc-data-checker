@@ -78,10 +78,10 @@ def test_temporal_resolution(tmp_path: pathlib.Path) -> None:
         da.to_netcdf(tmp_path / f"{date}.nc")
 
     checker = Checker(str(tmp_path / "*.nc"), files_format="NETCDF")
-    actual = checker.check_temporal_resolution("1900-01-01", "1900-01-02", "1D")
+    actual = checker.check_temporal_resolution("1900-01-01", "1900-01-02", "1D", "time")
     assert actual == {}
 
-    actual = checker.check_temporal_resolution("2000-01-01", "2000-01-02", "2D")
+    actual = checker.check_temporal_resolution("2000-01-01", "2000-01-02", "2D", "time")
     expected = {
         "min": "1900-01-01T00:00:00.000000000",
         "max": "1900-01-02T00:00:00.000000000",

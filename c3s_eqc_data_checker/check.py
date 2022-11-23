@@ -14,11 +14,13 @@
 
 import collections
 import dataclasses
+import datetime
 import functools
 import glob
 import inspect
 import pathlib
 import tempfile
+import textwrap
 from typing import Any, Iterable, Literal
 
 import cdo
@@ -100,7 +102,19 @@ class Checker:
     def paths_iterator(self) -> Iterable[str]:
         return rich.progress.track(self.paths, description="")
 
-    def check_format(self, version: str | float | None) -> dict[str, Any]:
+    def check_format(
+        self, version: str | float | None
+    ) -> dict[str, Any]:  # noqa: D205, D400
+        """
+        [format]
+        # Check file format.
+        #
+        # Arguments:
+        #   * version: check specific version (optional)
+        #
+        # Example:
+        version = 2
+        """
         expected_prefix = f"{self.files_format}{version if version else ''}"
         errors = {}
         for path in self.paths_iterator:
@@ -128,12 +142,38 @@ class Checker:
                         errors[path][var] = error
         return errors
 
-    def check_variable_attributes(self, **expected: dict[str, Any]) -> dict[str, Any]:
-
+    def check_variable_attributes(
+        self, **expected: dict[str, Any]
+    ) -> dict[str, Any]:  # noqa: D205, D400
+        """
+        [variable_attributes.var_name]
+        # Check attributes of a specific variable.
+        #
+        # Repeat for each variable.
+        # Arguments are the attributes to check and their values.
+        # Use empty strings to ensure attributes exist without checking values.
+        #
+        # Example:
+        units = "K"
+        name = ""
+        """
         return self._check_variable_attrs_or_sizes("variable_attrs", **expected)
 
-    def check_variable_dimensions(self, **expected: dict[str, Any]) -> dict[str, Any]:
-
+    def check_variable_dimensions(
+        self, **expected: dict[str, Any]
+    ) -> dict[str, Any]:  # noqa: D205, D400
+        """
+        [variable_dimensions.var_name]
+        # Check variable dimensions.
+        #
+        # Repeat for each variable.
+        # Arguments are the dimensions to check and their sizes.
+        # Use empty strings to ensure dimensions exist without checking sizes.
+        #
+        # Example:
+        latitude = 180
+        longitude = ""
+        """
         return self._check_variable_attrs_or_sizes("variable_sizes", **expected)
 
     def _check_global_attrs_or_sizes(
@@ -149,14 +189,51 @@ class Checker:
                 errors[path] = error
         return errors
 
-    def check_global_attributes(self, **expected: Any) -> dict[str, Any]:
+    def check_global_attributes(
+        self, **expected: Any
+    ) -> dict[str, Any]:  # noqa: D205, D400
+        """
+        [check_global_attributes]
+        # Check globale attributes.
+        #
+        # Arguments are the attributes to check and their values.
+        # Use empty strings to ensure attributes exist without checking values.
+        #
+        # Example:
+        centre = "ecmf"
+        centreDescription = ""
+        """
         return self._check_global_attrs_or_sizes("global_attrs", **expected)
 
-    def check_global_dimensions(self, **expected: Any) -> dict[str, Any]:
+    def check_global_dimensions(
+        self, **expected: Any
+    ) -> dict[str, Any]:  # noqa: D205, D400
+        """
+        [global_dimensions]
+        # Check global dimensions.
+        #
+        # Arguments are the dimensions to check and their sizes.
+        # Use empty strings to ensure dimensions exist without checking sizes.
+        #
+        # Example:
+        latitude = 180
+        longitude = ""
+        """
         return self._check_global_attrs_or_sizes("global_sizes", **expected)
 
-    def check_cf_compliance(self, version: float | str | None) -> dict[str, Any]:
-
+    def check_cf_compliance(
+        self, version: float | str | None
+    ) -> dict[str, Any]:  # noqa: D205, D400
+        """
+        [cf_compliance]
+        # Check CF compliance.
+        #
+        # Arguments:
+        #   * version: CF version to check against (optional)
+        #
+        # Example:
+        version = 1.7
+        """
         version = (
             cfchecker.cfchecks.CFVersion(str(version))
             if version
@@ -194,12 +271,27 @@ class Checker:
 
     def check_temporal_resolution(
         self,
-        min: str | None,
-        max: str | None,
+        min: datetime.date | datetime.datetime | str | None,
+        max: datetime.date | datetime.datetime | str | None,
         resolution: str | None,
         name: str = "time",
-    ) -> dict[str, Any]:
-
+    ) -> dict[str, Any]:  # noqa: D205, D400
+        """
+        [temporal_resolution]
+        # Check temporal resolution.
+        #
+        # Arguments:
+        #   * min: first time (optional)
+        #   * max: last time (optional)
+        #   * resolution: time resolution (optional)
+        #   * name: name of time dimension (optional, default: "time")
+        #
+        # Example:
+        min = 1900-01-01
+        max = 1900-01-02
+        resolution = "1 days"
+        name = "time"
+        """
         times = []
         for path in self.paths_iterator:
             times.append(self.backend(path).ds[name])
@@ -231,8 +323,24 @@ class Checker:
         mask_file: str | None,
         variables: list[str] | set[str] | tuple[str] | None,
         ensure_null: bool | None,
-    ) -> dict[str, Any]:
-
+    ) -> dict[str, Any]:  # noqa: D205, D400
+        """
+        [completeness]
+        # Check data completeness.
+        # If mask is not provided, all values must be not null.
+        #
+        # Arguments:
+        #   * mask_variable: name of the mask variable (optional).
+        #   * mask_file: path to file containing mask variable (optional)
+        #   * variables: variables to check (optional)
+        #   * ensure_null: ensure that masked values are null (optional)
+        #
+        # Example:
+        mask_variable = "mask_name"
+        mask_file = "path/to/file/with/mask"
+        variables = ["var1", "var2"]
+        name = "time"
+        """
         mask = None
         if mask_file:
             if mask_variable is None:
@@ -279,10 +387,34 @@ class Checker:
                 errors[path] = error
         return errors
 
-    def check_horizontal_resolution(self, **expected_griddes: str) -> dict[str, Any]:
+    def check_horizontal_resolution(
+        self, **expected_griddes: str
+    ) -> dict[str, Any]:  # noqa: D205, D400
+        """
+        [horizontal_resolution]
+        # Check horizontal resolution.
+        #
+        # Arguments are the grid attributes to check and their values.
+        # Attributes are inferred using `cdo -griddes`.
+        #
+        # Example:
+        gridtype = "lonlat"
+        """
         return self._check_spatial_resolution("griddes", expected_griddes)
 
-    def check_vertical_resolution(self, **expected_zaxisdes: str) -> dict[str, Any]:
+    def check_vertical_resolution(
+        self, **expected_zaxisdes: str
+    ) -> dict[str, Any]:  # noqa: D205, D400
+        """
+        [vertical_resolution]
+        # Check vertical resolution.
+        #
+        # Arguments are the grid attributes to check and their values.
+        # Attributes are inferred using `cdo -zaxisdes`.
+        #
+        # Example:
+        zaxistype = "surface"
+        """
         return self._check_spatial_resolution("zaxisdes", expected_zaxisdes)
 
 
@@ -298,11 +430,7 @@ class ConfigChecker:
 
     @functools.cached_property
     def available_checks(self) -> list[str]:
-        return sorted(
-            name.split("check_", 1)[-1]
-            for name in dir(self.checker)
-            if name.startswith("check_")
-        )
+        return available_checks(self.checker)
 
     def check(self, name: str) -> Any:
         method = getattr(self.checker, f"check_{name}")
@@ -312,3 +440,21 @@ class ConfigChecker:
         if fullargsspec.varkw:
             kwargs.update(self.config.get(name, {}))
         return method(**kwargs)
+
+
+def available_checks(obj: Any = None) -> list[str]:
+    if obj is None:
+        obj = Checker
+    return sorted(
+        name.split("check_", 1)[-1] for name in dir(obj) if name.startswith("check_")
+    )
+
+
+def template_toml(obj: Any = None) -> str:
+    if obj is None:
+        obj = Checker
+
+    toml_string = ""
+    for check in available_checks(obj):
+        toml_string += textwrap.dedent(getattr(obj, f"check_{check}").__doc__)
+    return toml_string

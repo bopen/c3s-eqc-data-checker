@@ -22,6 +22,8 @@ import typer
 
 import c3s_eqc_data_checker
 
+from . import check
+
 logging.basicConfig(
     level="INFO",
     format="%(message)s",
@@ -34,6 +36,10 @@ logging.basicConfig(
         )
     ],
 )
+
+
+def template_toml() -> None:
+    print(check.template_toml())
 
 
 def errors_to_list_of_strings(
