@@ -193,7 +193,11 @@ class Checker:
         return errors
 
     def check_temporal_resolution(
-        self, name: str, min: str | None, max: str | None, resolution: str | None
+        self,
+        min: str | None,
+        max: str | None,
+        resolution: str | None,
+        name: str = "time",
     ) -> dict[str, Any]:
 
         times = []

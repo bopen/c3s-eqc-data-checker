@@ -31,13 +31,12 @@ logging.basicConfig(
             show_path=False,
             rich_tracebacks=True,
             markup=True,
-            highlighter=None,
         )
     ],
 )
 
 
-def make_error_prints(
+def errors_to_list_of_strings(
     errors: dict[str, Any],
     prints: list[str] | None = None,
     nest: int = 1,
@@ -48,9 +47,9 @@ def make_error_prints(
     for key, value in errors.items():
         if isinstance(value, dict):
             prints.append(f"{tab}{key}:")
-            make_error_prints(value, prints, nest + 1)
+            errors_to_list_of_strings(value, prints, nest + 1)
         elif isinstance(value, str):
-            prefix = f"{tab}{key}:"
+            prefix = f"{tab}{key}: "
             header, *lines = value.splitlines()
             prints.append(f"{prefix}{header}")
             prefix = " " * len(prefix)
@@ -68,12 +67,12 @@ def main(
 
     checker = c3s_eqc_data_checker.ConfigChecker(configfile)
     counter: dict[str, int] = collections.defaultdict(int)
-    reports = []
+    summary = ["[bold]SUMMARY:[/]"]
 
     for check_name in checker.available_checks:
         if check_name not in checker.config:
             counter["SKIPPED"] += 1
-            reports.append(f"{check_name}: [yellow]SKIPPED[/]")
+            summary.append(f"{check_name}: [yellow]SKIPPED[/]")
             continue
 
         logging.info(f"Checking {check_name}")
@@ -81,21 +80,24 @@ def main(
             errors = checker.check(check_name)
         except Exception:
             counter["FAILED"] += 1
-            reports.append(f"{check_name}: [red]FAILED[/]")
+            summary.append(f"{check_name}: [red]FAILED[/]")
             logging.exception(check_name)
         else:
             if errors:
                 counter["FAILED"] += 1
-                reports.append(f"{check_name}: [red]FAILED[/]")
-                logging.error("\n".join([check_name] + make_error_prints(errors)))
+                summary.append(f"{check_name}: [red]FAILED[/]")
+                logging.error(f"[bold]{check_name}[/]")
+                for line in errors_to_list_of_strings(errors):
+                    logging.error(line)
             else:
                 counter["PASSED"] += 1
-                reports.append(f"{check_name}: [green]PASSED[/]")
+                summary.append(f"{check_name}: [green]PASSED[/]")
 
     for key in ("PASSED", "SKIPPED", "FAILED"):
-        reports.append(f"[bold]{key}: {counter[key]}[/]")
-    logging.info("\n".join(reports))
-    raise typer.Exit(code=counter["FAILED"] == 0)
+        summary.append(f"[bold]{key}: {counter[key]}[/]")
+    for line in summary:
+        logging.info(line)
+    raise typer.Exit(code=counter["FAILED"] != 0)
 
 
 def run() -> None:
