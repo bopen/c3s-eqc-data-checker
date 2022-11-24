@@ -72,7 +72,19 @@ def available_checks() -> list[str]:
 
 def template_callback(value: bool) -> None:
     if value:
-        toml_string = textwrap.dedent(c3s_eqc_data_checker.Checker.__doc__ or "")
+        toml_string = f"# Template configuration file for data-checker v{c3s_eqc_data_checker.__version__}\n"
+        toml_string += textwrap.dedent(c3s_eqc_data_checker.Checker.__doc__ or "")
+        toml_string += (
+            "\n"
+            + "\n".join(
+                [
+                    "# All checks are optional (skip checks removing their sections).",
+                    "# Unless otherwise specified, optional arguments default to None.",
+                ]
+            )
+            + "\n"
+        )
+
         for check_name in available_checks():
             toml_string += textwrap.dedent(
                 getattr(c3s_eqc_data_checker.Checker, f"check_{check_name}").__doc__

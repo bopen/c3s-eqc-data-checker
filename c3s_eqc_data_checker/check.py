@@ -74,11 +74,9 @@ def filter_cfchecker_results(results: Any) -> None:
 @dataclasses.dataclass
 class Checker:  # noqa: D205, D400
     """
-    # Data checker.
-    #
     # Arguments:
-    #   * files_pattern: glob pattern
-    #   * files_format: format of files (GRIB or NETCDF)
+    #   * files_pattern: glob pattern matching files to check
+    #   * files_format: format of files to check (GRIB or NETCDF)
     #
     # Example:
     files_pattern = "path/to/files/*.grib"
@@ -205,7 +203,7 @@ class Checker:  # noqa: D205, D400
     ) -> dict[str, Any]:  # noqa: D205, D400
         """
         [global_attributes]
-        # Check globale attributes.
+        # Check global attributes.
         #
         # Arguments are the attributes to check and their values.
         # Use empty strings to ensure attributes exist without checking values.
@@ -350,7 +348,7 @@ class Checker:  # noqa: D205, D400
         mask_variable = "mask_name"
         mask_file = "path/to/file/with/mask"
         variables = ["var1", "var2"]
-        name = "time"
+        ensure_null = true
         """
         mask = None
         if mask_file:
