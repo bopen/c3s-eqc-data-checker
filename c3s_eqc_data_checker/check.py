@@ -21,7 +21,8 @@ import inspect
 import logging
 import pathlib
 import tempfile
-from typing import Any, Iterable, Literal
+from collections.abc import Iterable
+from typing import Any, Literal
 
 import cdo
 import cfchecker.cfchecks
