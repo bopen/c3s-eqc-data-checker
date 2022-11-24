@@ -14,8 +14,7 @@
 
 import abc
 import functools
-import importlib
-from typing import Any, Literal
+from typing import Any
 
 import xarray as xr
 
@@ -26,10 +25,6 @@ class BaseFormat:
     def __init__(self, path: str) -> None:
         self.path = path
 
-    @functools.cached_property
-    def chunks(self) -> Literal["auto", None]:
-        return "auto" if importlib.util.find_spec("dask") else None
-
     @property
     @abc.abstractmethod
     def engine(self) -> str:
@@ -37,7 +32,7 @@ class BaseFormat:
 
     @functools.cached_property
     def ds(self) -> xr.Dataset:
-        return xr.open_dataset(self.path, chunks=self.chunks, engine=self.engine)
+        return xr.open_dataset(self.path, chunks="auto", engine=self.engine)
 
     @property
     @abc.abstractmethod
