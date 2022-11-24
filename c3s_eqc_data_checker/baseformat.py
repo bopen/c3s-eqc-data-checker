@@ -20,8 +20,6 @@ import xarray as xr
 
 
 class BaseFormat:
-    slots = "path"
-
     def __init__(self, path: str) -> None:
         self.path = path
 
