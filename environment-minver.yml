@@ -10,6 +10,7 @@ dependencies:
 - cfgrib
 - dask
 - netCDF4
+- pandas
 - python-eccodes
 - python-cdo
 - rich

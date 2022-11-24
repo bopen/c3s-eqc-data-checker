@@ -72,7 +72,19 @@ def filter_cfchecker_results(results: Any) -> None:
 
 
 @dataclasses.dataclass
-class Checker:
+class Checker:  # noqa: D205, D400
+    """
+    # Data checker.
+    #
+    # Arguments:
+    #   * files_pattern: glob pattern
+    #   * files_format: format of files (GRIB or NETCDF)
+    #
+    # Example:
+    files_pattern = "path/to/files/*.grib"
+    files_format = "GRIB"
+    """
+
     files_pattern: str
     files_format: Literal["GRIB", "NETCDF"]
 
@@ -192,7 +204,7 @@ class Checker:
         self, **expected: Any
     ) -> dict[str, Any]:  # noqa: D205, D400
         """
-        [check_global_attributes]
+        [global_attributes]
         # Check globale attributes.
         #
         # Arguments are the attributes to check and their values.

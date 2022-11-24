@@ -72,12 +72,12 @@ def available_checks() -> list[str]:
 
 def template_callback(value: bool) -> None:
     if value:
-        toml_string = ""
+        toml_string = textwrap.dedent(c3s_eqc_data_checker.Checker.__doc__ or "")
         for check_name in available_checks():
             toml_string += textwrap.dedent(
                 getattr(c3s_eqc_data_checker.Checker, f"check_{check_name}").__doc__
             )
-        print("\n".join(toml_string))
+        print(toml_string)
         raise typer.Exit()
 
 

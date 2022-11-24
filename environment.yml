@@ -16,6 +16,7 @@ dependencies:
 - cfgrib
 - dask
 - netCDF4
+- pandas
 - pandas-stubs
 - python-eccodes
 - python-cdo
