@@ -37,7 +37,7 @@ def test_data_checker(tmp_path: pathlib.Path, grib_path: pathlib.Path) -> None:
                 "files_format": "GRIB",
                 "format": {"version": "1"},  # fail
                 "cf_compliance": {},  # fail
-                "completeness": {},  # pass
+                "completeness": {"foo": "foo"},  # pass with warning
             },
             f,
         )
@@ -62,6 +62,7 @@ def test_data_checker(tmp_path: pathlib.Path, grib_path: pathlib.Path) -> None:
         ERROR          wvsp1: (3.3): Invalid standard_name: unknown
         ERROR                 (3.1): Invalid units: ~
         INFO     Checking completeness
+        WARNING  Unused arguments: foo
         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
         INFO     Checking format
         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00

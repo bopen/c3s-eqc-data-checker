@@ -18,6 +18,7 @@ import datetime
 import functools
 import glob
 import inspect
+import logging
 import pathlib
 import tempfile
 from typing import Any, Iterable, Literal
@@ -446,10 +447,14 @@ class ConfigChecker:
         return Checker(**kwargs)
 
     def check(self, name: str) -> Any:
+        config_args = self.config[name]
+
         method = getattr(self.checker, f"check_{name}")
         fullargsspec = inspect.getfullargspec(method)
         args = set(fullargsspec.args) - {"self"}
-        kwargs = {arg: self.config.get(name, {}).get(arg, None) for arg in args}
+        kwargs = {arg: config_args.get(arg, None) for arg in args}
         if fullargsspec.varkw:
-            kwargs.update(self.config.get(name, {}))
+            kwargs.update(config_args)
+        elif extra_args := set(config_args) - args:
+            logging.warn(f"Unused arguments: {', '.join(extra_args)}")
         return method(**kwargs)
