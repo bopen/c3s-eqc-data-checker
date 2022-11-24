@@ -15,14 +15,14 @@
 import collections
 import logging
 import pathlib
+import textwrap
 from typing import Any
 
+import rich
 import rich.logging
 import typer
 
 import c3s_eqc_data_checker
-
-from . import check
 
 logging.basicConfig(
     level="INFO",
@@ -36,10 +36,6 @@ logging.basicConfig(
         )
     ],
 )
-
-
-def template_toml() -> None:
-    print(check.template_toml())
 
 
 def errors_to_list_of_strings(
@@ -66,16 +62,54 @@ def errors_to_list_of_strings(
     return prints
 
 
+def available_checks() -> list[str]:
+    return sorted(
+        name.split("check_", 1)[-1]
+        for name in dir(c3s_eqc_data_checker.Checker)
+        if name.startswith("check_")
+    )
+
+
+def template_callback(value: bool) -> None:
+    if value:
+        toml_string = ""
+        for check_name in available_checks():
+            toml_string += textwrap.dedent(
+                getattr(c3s_eqc_data_checker.Checker, f"check_{check_name}").__doc__
+            )
+        print("\n".join(toml_string))
+        raise typer.Exit()
+
+
+def version_callback(value: bool) -> None:
+    if value:
+        print(c3s_eqc_data_checker.__version__)
+        raise typer.Exit()
+
+
+CONFIGFILE = typer.Argument(..., help="Path to configuration file.")
+TEMPLATE = typer.Option(
+    False,
+    "--template-configfile",
+    help="Show configuration file template and exit.",
+    callback=template_callback,
+)
+VERSION = typer.Option(
+    False, "--version", help="Show version and exit.", callback=version_callback
+)
+
+
 def main(
-    configfile: str = typer.Argument(..., help="Path to configuration file")
+    configfile: str = CONFIGFILE, template: bool = TEMPLATE, version: bool = VERSION
 ) -> None:
+    logging.info(f"VERSION: {c3s_eqc_data_checker.__version__}")
     logging.info(f"CONFIGFILE: {pathlib.Path(configfile).resolve()}")
 
     checker = c3s_eqc_data_checker.ConfigChecker(configfile)
     counter: dict[str, int] = collections.defaultdict(int)
     summary = ["[bold]SUMMARY:[/]"]
 
-    for check_name in checker.available_checks:
+    for check_name in available_checks():
         if check_name not in checker.config:
             counter["SKIPPED"] += 1
             summary.append(f"{check_name}: [yellow]SKIPPED[/]")
@@ -107,7 +141,6 @@ def main(
 
 
 def run() -> None:
-    logging.info(f"VERSION: {c3s_eqc_data_checker.__version__}")
     typer.run(main)
 
 

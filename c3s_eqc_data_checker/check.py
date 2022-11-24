@@ -20,7 +20,6 @@ import glob
 import inspect
 import pathlib
 import tempfile
-import textwrap
 from typing import Any, Iterable, Literal
 
 import cdo
@@ -428,10 +427,6 @@ class ConfigChecker:
         kwargs = {arg: self.config[arg] for arg in args}
         return Checker(**kwargs)
 
-    @functools.cached_property
-    def available_checks(self) -> list[str]:
-        return available_checks(self.checker)
-
     def check(self, name: str) -> Any:
         method = getattr(self.checker, f"check_{name}")
         fullargsspec = inspect.getfullargspec(method)
@@ -440,21 +435,3 @@ class ConfigChecker:
         if fullargsspec.varkw:
             kwargs.update(self.config.get(name, {}))
         return method(**kwargs)
-
-
-def available_checks(obj: Any = None) -> list[str]:
-    if obj is None:
-        obj = Checker
-    return sorted(
-        name.split("check_", 1)[-1] for name in dir(obj) if name.startswith("check_")
-    )
-
-
-def template_toml(obj: Any = None) -> str:
-    if obj is None:
-        obj = Checker
-
-    toml_string = ""
-    for check in available_checks(obj):
-        toml_string += textwrap.dedent(getattr(obj, f"check_{check}").__doc__)
-    return toml_string
