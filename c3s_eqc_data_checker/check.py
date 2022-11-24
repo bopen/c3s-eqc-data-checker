@@ -155,16 +155,20 @@ class Checker:  # noqa: D205, D400
         self, **expected: dict[str, Any]
     ) -> dict[str, Any]:  # noqa: D205, D400
         """
-        [variable_attributes.var_name]
+        [variable_attributes.var_name1]
         # Check attributes of a specific variable.
         #
         # Repeat for each variable.
         # Arguments are the attributes to check and their values.
         # Use empty strings to ensure attributes exist without checking values.
         #
-        # Example:
+        # Example 1:
         units = "K"
         name = ""
+
+        [variable_attributes.var_name2]
+        # Example 2:
+        units = "m"
         """
         return self._check_variable_attrs_or_sizes("variable_attrs", **expected)
 
@@ -172,16 +176,20 @@ class Checker:  # noqa: D205, D400
         self, **expected: dict[str, Any]
     ) -> dict[str, Any]:  # noqa: D205, D400
         """
-        [variable_dimensions.var_name]
+        [variable_dimensions.var_name1]
         # Check variable dimensions.
         #
         # Repeat for each variable.
         # Arguments are the dimensions to check and their sizes.
         # Use empty strings to ensure dimensions exist without checking sizes.
         #
-        # Example:
+        # Example 1:
         latitude = 180
         longitude = ""
+
+        [variable_dimensions.var_name2]
+        # Example 2:
+        time = 10
         """
         return self._check_variable_attrs_or_sizes("variable_sizes", **expected)
 
@@ -238,7 +246,7 @@ class Checker:  # noqa: D205, D400
         # Check CF compliance.
         #
         # Arguments:
-        #   * version: CF version to check against (optional)
+        #   * version: CF version to check against (optional, default: infer from attributes)
         #
         # Example:
         version = 1.7
@@ -336,10 +344,10 @@ class Checker:  # noqa: D205, D400
         """
         [completeness]
         # Check data completeness.
-        # If mask is not provided, all values must be not null.
+        # If mask is not provided, ensure that all values are not null.
         #
         # Arguments:
-        #   * mask_variable: name of the mask variable (optional).
+        #   * mask_variable: name of the mask variable (optional)
         #   * mask_file: path to file containing mask variable (optional)
         #   * variables: variables to check (optional)
         #   * ensure_null: ensure that masked values are null (optional)
