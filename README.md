@@ -7,11 +7,15 @@ Data quality checker
 ```
 data-checker --help
 ```
+
 Usage:
+
 ```
 data-checker [CONFIGFILE]
 ```
+
 Configuration options:
+
 ```
 data-checker --template-configfile
 ```

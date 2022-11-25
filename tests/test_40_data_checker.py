@@ -85,3 +85,36 @@ def test_data_checker(tmp_path: pathlib.Path, grib_path: pathlib.Path) -> None:
     )
     assert stdout == expected
     assert res.returncode
+
+
+def test_data_checker_identical_errors(
+    tmp_path: pathlib.Path, grib_path: pathlib.Path
+) -> None:
+    # Create config file
+    grib_files = str(grib_path / "GRIB*.tmpl")
+    with (tmp_path / "test.toml").open("w") as f:
+        toml.dump(
+            {
+                "files_pattern": grib_files,
+                "files_format": "GRIB",
+                "global_attributes": {"foo": ""},
+            },
+            f,
+        )
+
+    # Run checker
+    res = subprocess.run(
+        ["data-checker", str(tmp_path / "test.toml")],
+        capture_output=True,
+        text=True,
+    )
+    stdout = parse_stdout(res.stdout)
+
+    expected = textwrap.dedent(
+        f"""\
+        ERROR    global_attributes
+        ERROR      {grib_files}:
+        ERROR        foo: None"""
+    )
+    assert expected in stdout
+    assert res.returncode

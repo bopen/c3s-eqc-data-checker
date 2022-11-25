@@ -460,4 +460,13 @@ class ConfigChecker:
             kwargs.update(config_args)
         elif extra_args := set(config_args) - args:
             logging.warn(f"Unused arguments: {', '.join(extra_args)}")
-        return method(**kwargs)
+        errors = method(**kwargs)
+
+        if set(errors) == set(self.checker.paths):
+            # All errors are identical
+            values = iter(errors.values())
+            first_value = next(values)
+            if all(value == first_value for value in values):
+                return {self.checker.files_pattern: first_value}
+
+        return errors
