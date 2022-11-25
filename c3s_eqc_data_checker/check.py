@@ -48,13 +48,13 @@ def check_attributes_or_sizes(
 
 
 def cdo_des_to_dict(path: str, destype: str) -> dict[str, str]:
-    griddes_dict = {}
+    desdict = {}
     for string in getattr(cdo.Cdo(), destype)(input=path):
         if "=" in string:
             string = string.replace("'", "").replace('"', "")
             key, value = string.split("=")
-            griddes_dict[key.strip()] = value.strip()
-    return griddes_dict
+            desdict[key.strip()] = value.strip()
+    return desdict
 
 
 def filter_cfchecker_results(results: Any) -> None:
