@@ -140,7 +140,7 @@ def main(
                 summary.append(f"{check_name}: [red]FAILED[/]")
                 logging.error(f"[bold]{check_name}[/]")
                 for line in errors_to_list_of_strings(errors):
-                    logging.error(line)
+                    logging.error(line, extra={"highlighter": None})
             else:
                 counter["PASSED"] += 1
                 summary.append(f"{check_name}: [green]PASSED[/]")
