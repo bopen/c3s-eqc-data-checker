@@ -47,10 +47,6 @@ def check_attributes_or_sizes(
     return errors
 
 
-def recursive_defaultdict() -> dict[Any, Any]:
-    return collections.defaultdict(recursive_defaultdict)
-
-
 def cdo_des_to_dict(path: str, destype: str) -> dict[str, str]:
     griddes_dict = {}
     for string in getattr(cdo.Cdo(), destype)(input=path):
@@ -259,7 +255,7 @@ class Checker:  # noqa: D205, D400
             else cfchecker.cfchecks.CFVersion()
         )
 
-        errors = recursive_defaultdict()
+        errors: dict[str, Any] = collections.defaultdict(dict)
         with tempfile.TemporaryDirectory() as tmpdir:
             inst = cfchecker.cfchecks.CFChecker(
                 cacheTables=True,
