@@ -463,10 +463,10 @@ class ConfigChecker:
         errors = method(**kwargs)
 
         if set(errors) == set(self.checker.paths):
-            # All errors are identical
             values = iter(errors.values())
             first_value = next(values)
             if all(value == first_value for value in values):
+                # All errors are identical
                 return {self.checker.files_pattern: first_value}
 
         return errors
