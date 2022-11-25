@@ -4,9 +4,16 @@ Data quality checker
 
 ## Quick Start
 
-```python
->>> import c3s_eqc_data_checker
-
+```
+data-checker --help
+```
+Usage:
+```
+data-checker [CONFIGFILE]
+```
+Configuration options:
+```
+data-checker --template-configfile
 ```
 
 ## Workflow for developers/contributors
