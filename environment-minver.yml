@@ -6,3 +6,14 @@ dependencies:
 - pytest
 - pytest-cov
 # DO NOT EDIT ABOVE THIS LINE, ADD DEPENDENCIES BELOW
+- cfchecker
+- cfgrib
+- dask
+- netCDF4
+- pandas
+- python-eccodes
+- python-cdo
+- rich
+- toml
+- typer
+- xarray
