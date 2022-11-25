@@ -289,7 +289,7 @@ class Checker:  # noqa: D205, D400
         min: datetime.date | datetime.datetime | str | None,
         max: datetime.date | datetime.datetime | str | None,
         resolution: str | None,
-        name: str = "time",
+        name: str | None,
     ) -> dict[str, Any]:  # noqa: D205, D400
         """
         [temporal_resolution]
@@ -307,6 +307,9 @@ class Checker:  # noqa: D205, D400
         resolution = "1 days"
         name = "time"
         """
+        if name is None:
+            name = "time"
+
         times = []
         for path in self.paths_iterator:
             times.append(self.backend(path).ds[name])
