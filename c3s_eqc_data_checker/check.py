@@ -370,15 +370,18 @@ class Checker:  # noqa: D205, D400
             if mask is None and mask_variable:
                 mask = ds[mask_variable].fillna(0)
 
-            for var in variables if variables is not None else ds.data_vars:
-                da = ds[var]
-                if variables is not None:
-                    if var not in variables:
-                        continue
+            if variables is None:
+                if mask is None:
+                    variables = list(ds.data_vars)
                 else:
-                    if mask is not None and not set(mask.dims) <= set(da.dims):
-                        continue
+                    variables = [
+                        var
+                        for var, da in ds.data_vars.items()
+                        if set(mask.dims) <= set(da.dims)
+                    ]
 
+            for var in variables:
+                da = ds[var]
                 if mask is None and da.isnull().any():
                     errors[path].add(var)
                 elif not xr.where(
