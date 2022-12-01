@@ -62,14 +62,6 @@ def errors_to_list_of_strings(
     return prints
 
 
-def available_checks() -> list[str]:
-    return sorted(
-        name.split("check_", 1)[-1]
-        for name in dir(c3s_eqc_data_checker.Checker)
-        if name.startswith("check_")
-    )
-
-
 def template_callback(value: bool) -> None:
     if value:
         toml_string = f"# Template configuration file for data-checker v{c3s_eqc_data_checker.__version__}\n"
@@ -85,7 +77,7 @@ def template_callback(value: bool) -> None:
             + "\n"
         )
 
-        for check_name in available_checks():
+        for check_name in c3s_eqc_data_checker.Checker.available_checks():
             toml_string += textwrap.dedent(
                 getattr(c3s_eqc_data_checker.Checker, f"check_{check_name}").__doc__
             )
@@ -121,7 +113,7 @@ def data_checker(
     counter: dict[str, int] = collections.defaultdict(int)
     summary = ["[bold]SUMMARY:[/]"]
 
-    for check_name in available_checks():
+    for check_name in checker.checker.available_checks():
         if check_name not in checker.config:
             counter["SKIPPED"] += 1
             summary.append(f"{check_name}: [yellow]SKIPPED[/]")

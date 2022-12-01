@@ -3,7 +3,6 @@ import subprocess
 
 import toml
 
-import c3s_eqc_data_checker.cli
 from c3s_eqc_data_checker import Checker
 
 
@@ -18,7 +17,7 @@ def test_template_configfile() -> None:
     expected_args = set(inspect.getfullargspec(Checker).args) - {"self"}
     assert expected_args <= set(loaded_toml)
 
-    for check_name in c3s_eqc_data_checker.cli.available_checks():
+    for check_name in Checker.available_checks():
         assert check_name in set(loaded_toml)
 
         method = getattr(Checker, f"check_{check_name}")

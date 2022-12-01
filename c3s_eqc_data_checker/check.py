@@ -84,6 +84,14 @@ class Checker:  # noqa: D205, D400
     files_pattern: str
     files_format: Literal["GRIB", "NETCDF"]
 
+    @classmethod
+    def available_checks(cls) -> list[str]:
+        return sorted(
+            name.split("check_", 1)[-1]
+            for name in dir(cls)
+            if name.startswith("check_")
+        )
+
     @functools.cached_property
     def backend(self) -> type:
         match self.files_format:
