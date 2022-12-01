@@ -453,6 +453,7 @@ class ConfigChecker:
 
     @functools.cached_property
     def checker(self) -> Checker:
+        # TODO: make it a classmethod of Checker in python 3.11
         args = set(inspect.getfullargspec(Checker).args) - {"self"}
         kwargs = {arg: self.config[arg] for arg in args}
         return Checker(**kwargs)

@@ -66,15 +66,13 @@ def template_callback(value: bool) -> None:
     if value:
         toml_string = f"# Template configuration file for data-checker v{c3s_eqc_data_checker.__version__}\n"
         toml_string += textwrap.dedent(c3s_eqc_data_checker.Checker.__doc__ or "")
-        toml_string += (
-            "\n"
-            + "\n".join(
-                [
-                    "# All checks are optional (skip checks removing their sections).",
-                    "# Unless otherwise specified, optional arguments default to None.",
-                ]
-            )
-            + "\n"
+        toml_string += "\n".join(
+            [
+                "",
+                "# All checks are optional (skip checks removing their sections).",
+                "# Unless otherwise specified, optional arguments default to None.",
+                "",
+            ]
         )
 
         for check_name in c3s_eqc_data_checker.Checker.available_checks():
@@ -109,19 +107,19 @@ def data_checker(
     logging.info(f"VERSION: {c3s_eqc_data_checker.__version__}")
     logging.info(f"CONFIGFILE: {pathlib.Path(configfile).resolve()}")
 
-    checker = c3s_eqc_data_checker.ConfigChecker(configfile)
+    configchecker = c3s_eqc_data_checker.ConfigChecker(configfile)
     counter: dict[str, int] = collections.defaultdict(int)
     summary = ["[bold]SUMMARY:[/]"]
 
-    for check_name in checker.checker.available_checks():
-        if check_name not in checker.config:
+    for check_name in configchecker.checker.available_checks():
+        if check_name not in configchecker.config:
             counter["SKIPPED"] += 1
             summary.append(f"{check_name}: [yellow]SKIPPED[/]")
             continue
 
         logging.info(f"Checking {check_name}")
         try:
-            errors = checker.check(check_name)
+            errors = configchecker.check(check_name)
         except Exception:
             counter["FAILED"] += 1
             summary.append(f"{check_name}: [red]FAILED[/]")
