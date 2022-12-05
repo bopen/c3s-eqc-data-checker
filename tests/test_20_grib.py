@@ -71,7 +71,7 @@ def test_cf_compliance(tmp_path: pathlib.Path, grib_path: pathlib.Path) -> None:
 def test_temporal_resolution(grib_path: pathlib.Path) -> None:
     checker = Checker(str(grib_path / "GRIB2.tmpl"), files_format="GRIB")
     actual = checker.check_temporal_resolution(
-        "2007-03-23T12", "2007-03-23T12", "0", None
+        "2007-03-23T12", "2007-03-23T12", None, None
     )
     assert actual == {}
 
@@ -81,7 +81,6 @@ def test_temporal_resolution(grib_path: pathlib.Path) -> None:
     expected = {
         "max": "2007-03-23T12:00:00.000000000",
         "min": "2007-03-23T12:00:00.000000000",
-        "resolution": "0",
     }
     assert actual == expected
 

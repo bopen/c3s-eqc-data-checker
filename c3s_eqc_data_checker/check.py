@@ -296,23 +296,26 @@ class Checker:  # noqa: D205, D400
         self,
         min: datetime.date | datetime.datetime | str | None,
         max: datetime.date | datetime.datetime | str | None,
-        resolution: str | None,
+        frequency: str | None,
         name: str | None,
     ) -> dict[str, Any]:  # noqa: D205, D400
         """
         [temporal_resolution]
         # Check temporal resolution.
         #
+        # See pandas frequency aliases:
+        # https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#timeseries-offset-aliases
+        #
         # Arguments:
         #   * min: first time (optional)
         #   * max: last time (optional)
-        #   * resolution: time resolution (optional)
+        #   * frequency: time frequency (optional).
         #   * name: name of time dimension (optional, default: "time")
         #
         # Example:
         min = 1900-01-01
         max = 1900-01-02
-        resolution = "1 days"
+        frequency = "1D"
         name = "time"
         """
         if name is None:
@@ -334,12 +337,12 @@ class Checker:  # noqa: D205, D400
             if (actual_max := time.max()) != pd.to_datetime(max):
                 errors["max"] = str(actual_max.values)
 
-        if resolution is not None:
-            res_td = pd.to_timedelta(resolution)
-            if time.size <= 1 and res_td != pd.to_timedelta(0):
-                errors["resolution"] = "0"
-            elif ((actual_res := time.diff(name)) != res_td).any():
-                errors["resolution"] = {str(value) for value in actual_res.values}
+        if frequency is not None:
+            expected_time = pd.date_range(
+                time.min().values, time.max().values, freq=frequency
+            )
+            if time.size != expected_time.size or not (time == expected_time).all():
+                errors["frequency"] = {str(value) for value in time.diff(name).values}
 
         return errors
 
