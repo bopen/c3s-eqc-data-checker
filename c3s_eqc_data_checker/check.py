@@ -309,7 +309,7 @@ class Checker:  # noqa: D205, D400
         # Arguments:
         #   * min: first time (optional)
         #   * max: last time (optional)
-        #   * frequency: time frequency (optional).
+        #   * frequency: time frequency (optional)
         #   * name: name of time dimension (optional, default: "time")
         #
         # Example:
