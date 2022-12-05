@@ -67,6 +67,12 @@ def test_cf_compliance(tmp_path: pathlib.Path, grib_path: pathlib.Path) -> None:
     actual = checker.check_cf_compliance(None)
     assert set(actual) == {str(tmp_path / "non-compliant.grib")}
 
+    actual = checker.check_cf_compliance("10")
+    print(actual.values)
+    assert actual[str(tmp_path / "non-compliant.grib")].startswith(
+        "version=CF-10 is not available."
+    )
+
 
 def test_temporal_resolution(grib_path: pathlib.Path) -> None:
     checker = Checker(str(grib_path / "GRIB2.tmpl"), files_format="GRIB")

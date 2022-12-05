@@ -273,6 +273,15 @@ class Checker:  # noqa: D205, D400
                 silent=True,
             )
             for path in self.paths_iterator:
+                if version and version not in cfchecker.cfchecks.cfVersions:
+                    versions = sorted(
+                        str(version) for version in cfchecker.cfchecks.cfVersions
+                    )
+                    errors[
+                        path
+                    ] = f"{version=!s} is not available.\nAvailable versions: {versions!r}."
+                    continue
+
                 if self.files_format == "NETCDF":
                     inst.checker(path)
                 else:
