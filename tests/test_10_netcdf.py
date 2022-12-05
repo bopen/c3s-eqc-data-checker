@@ -85,7 +85,7 @@ def test_temporal_resolution(tmp_path: pathlib.Path) -> None:
     expected = {
         "min": "1900-01-01T00:00:00.000000000",
         "max": "1900-01-02T00:00:00.000000000",
-        "resolution": {"86400000000000 nanoseconds"},
+        "frequency": {"86400000000000 nanoseconds"},
     }
     assert actual == expected
 
