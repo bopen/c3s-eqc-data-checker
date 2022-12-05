@@ -73,19 +73,21 @@ def test_cf_compliance(tmp_path: pathlib.Path) -> None:
 
 
 def test_temporal_resolution(tmp_path: pathlib.Path) -> None:
-    for date in pd.date_range("1900-01-01", "1900-01-02", freq="1D"):
+    for date in pd.date_range("1900-01-01", "1900-02-01", freq="1MS"):
         da = xr.DataArray(date, name="time")
         da.to_netcdf(tmp_path / f"{date}.nc")
 
     checker = Checker(str(tmp_path / "*.nc"), files_format="NETCDF")
-    actual = checker.check_temporal_resolution("1900-01-01", "1900-01-02", "1D", "time")
+    actual = checker.check_temporal_resolution(
+        "1900-01-01", "1900-02-01", "1MS", "time"
+    )
     assert actual == {}
 
-    actual = checker.check_temporal_resolution("2000-01-01", "2000-01-02", "2D", "time")
+    actual = checker.check_temporal_resolution("2000-01-01", "2000-02-01", "1D", "time")
     expected = {
         "min": "1900-01-01T00:00:00.000000000",
-        "max": "1900-01-02T00:00:00.000000000",
-        "frequency": {"86400000000000 nanoseconds"},
+        "max": "1900-02-01T00:00:00.000000000",
+        "frequency": {"2678400000000000 nanoseconds"},
     }
     assert actual == expected
 
