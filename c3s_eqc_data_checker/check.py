@@ -323,8 +323,8 @@ class Checker:  # noqa: D205, D400
         #
         # Example:
         min = 1900-01-01
-        max = 1900-01-02
-        frequency = "1D"
+        max = 1900-02-01
+        frequency = "1MS"
         name = "time"
         """
         if name is None:
