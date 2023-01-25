@@ -21,6 +21,7 @@ import inspect
 import logging
 import pathlib
 import tempfile
+import sys
 from collections.abc import Iterable
 from typing import Any, Literal
 
@@ -28,8 +29,12 @@ import cdo
 import cfchecker.cfchecks
 import pandas as pd
 import rich.progress
-import toml
 import xarray as xr
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 
 
 def check_attributes_or_sizes(
@@ -94,7 +99,7 @@ class Checker:  # noqa: D205, D400
 
     @functools.cached_property
     def backend(self) -> type:
-        match self.files_format:
+        match self.files_format:  # noqa: E999
             case "GRIB":
                 from . import grib
 
@@ -461,7 +466,8 @@ class Checker:  # noqa: D205, D400
 
 class ConfigChecker:
     def __init__(self, configfile: str | pathlib.Path):
-        self.config = toml.load(configfile)
+        with open(configfile, "rb") as f:
+            self.config = tomllib.load(f)
 
     @functools.cached_property
     def checker(self) -> Checker:

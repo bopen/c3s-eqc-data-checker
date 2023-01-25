@@ -1,4 +1,4 @@
-"""Data quality checker."""
+"""Data-quality checker."""
 
 # Copyright 2022, European Union.
 #
