@@ -16,6 +16,7 @@ dependencies = [
   "cdo",
   "cfchecker",
   "cfgrib",
+  "cfunits",
   "dask",
   "netCDF4",
   "pandas",
