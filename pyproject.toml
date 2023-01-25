@@ -23,6 +23,7 @@ dependencies = [
   "rich",
   "tomli ; python_version<'3.11'",
   "typer",
+  "udunits2",
   "xarray"
 ]
 description = "Data quality checker"
