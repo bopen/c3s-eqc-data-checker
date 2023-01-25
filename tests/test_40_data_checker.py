@@ -8,7 +8,7 @@ import c3s_eqc_data_checker
 
 
 def parse_stdout(stdout: str) -> str:
-    """Parse stdout to join lines split because of terminal size"""
+    """Parse stdout to join lines split because of terminal size."""
     lines = []
     for line in stdout.splitlines():
         line = line.rstrip()
